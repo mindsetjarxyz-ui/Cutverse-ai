@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Menu, Sparkles, User } from 'lucide-react';
+import { Search, Menu, Sparkles } from 'lucide-react';
 import { TOOLS } from '../constants';
 import { Tool } from '../types';
 
@@ -28,7 +28,7 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick, onNavigate }) => {
   }, [query]);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 h-16 bg-navy-900/80 backdrop-blur-md border-b border-white/5 z-40 flex items-center px-4 lg:px-8 justify-between">
+    <nav className="fixed top-0 left-0 right-0 h-16 bg-navy-900/90 backdrop-blur-md border-b border-white/5 z-40 flex items-center px-4 lg:px-8 justify-between">
       {/* Left: Logo & Menu */}
       <div className="flex items-center space-x-4">
         <button 
@@ -51,15 +51,15 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick, onNavigate }) => {
       </div>
 
       {/* Center: Search */}
-      <div className="hidden md:block flex-1 max-w-xl mx-8 relative">
+      <div className="flex-1 max-w-xl mx-4 md:mx-8 relative">
         <div className="relative group">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search size={16} className="text-gray-500 group-focus-within:text-primary transition-colors" />
           </div>
           <input
             type="text"
-            className="block w-full pl-10 pr-3 py-2.5 border border-white/10 rounded-full leading-5 bg-navy-800/50 text-gray-200 placeholder-gray-500 focus:outline-none focus:bg-navy-800 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all sm:text-sm"
-            placeholder="Search AI tools (e.g. Writer, Image, Object Remover)..."
+            className="block w-full pl-10 pr-3 py-2.5 border border-white/10 rounded-full leading-5 bg-navy-800/50 text-gray-200 placeholder-gray-500 focus:outline-none focus:bg-navy-800 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all text-sm"
+            placeholder="Search tools..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -94,15 +94,8 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick, onNavigate }) => {
         )}
       </div>
 
-      {/* Right: Actions */}
-      <div className="flex items-center space-x-3">
-        <button className="hidden sm:flex items-center space-x-2 py-1.5 px-3 rounded-full border border-white/10 hover:bg-white/5 transition-colors">
-            <div className="w-6 h-6 bg-gradient-to-tr from-primary to-accent rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg">
-               G
-            </div>
-            <span className="text-xs font-medium text-gray-300">Guest</span>
-        </button>
-      </div>
+      {/* Right: Actions (Empty) */}
+      <div className="w-4"></div>
     </nav>
   );
 };
