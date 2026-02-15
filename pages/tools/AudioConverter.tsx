@@ -32,6 +32,26 @@ const AudioConverter: React.FC = () => {
     }, 150);
   };
 
+  const handleDownload = () => {
+    if (!file) return;
+    
+    // Since this is a client-side demo without backend processing or ffmpeg.wasm,
+    // we simulate the download by using the original file blob and renaming it to .mp3.
+    // In a real app, you would download the actual processed result blob here.
+    const url = URL.createObjectURL(file);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // Replace file extension with .mp3
+    const newName = file.name.substring(0, file.name.lastIndexOf('.')) + '.mp3';
+    link.download = newName || 'audio.mp3';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-8 text-center">
@@ -93,7 +113,10 @@ const AudioConverter: React.FC = () => {
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">Conversion Complete!</h3>
                 <p className="text-gray-400 mb-6">Your audio file is ready to download.</p>
-                <button className="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-500 transition-colors shadow-lg shadow-green-900/50">
+                <button 
+                  onClick={handleDownload}
+                  className="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-500 transition-colors shadow-lg shadow-green-900/50"
+                >
                   <Download className="mr-2" size={20} />
                   Download MP3
                 </button>

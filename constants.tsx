@@ -5,7 +5,6 @@ import {
   Wand2, 
   Type, 
   Youtube, 
-  Music, 
   Palette,
   Sparkles,
   Layout,
@@ -124,14 +123,6 @@ export const TOOLS: Tool[] = [
     category: ToolCategory.SOCIAL,
     icon: Sparkles,
     path: '/tools/social/captions'
-  },
-  {
-    id: 'audio-extract',
-    name: 'Video to Audio',
-    description: 'Extract MP3 from video files locally.',
-    category: ToolCategory.UTILITY,
-    icon: Music,
-    path: '/tools/utility/audio'
   }
 ];
 
@@ -140,5 +131,4 @@ export const CATEGORIES = [
   { id: ToolCategory.IMAGE, icon: Image },
   { id: ToolCategory.WRITING, icon: PenTool },
   { id: ToolCategory.SOCIAL, icon: Youtube },
-  { id: ToolCategory.UTILITY, icon: Wand2 },
 ];

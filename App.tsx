@@ -4,7 +4,6 @@ import Sidebar from './components/Sidebar';
 import Home from './pages/Home';
 import ContentWriter from './pages/tools/ContentWriter';
 import ImageGenerator from './pages/tools/ImageGenerator';
-import AudioConverter from './pages/tools/AudioConverter';
 import YouTubeHelper from './pages/tools/YouTubeHelper';
 import YouTubeScriptWriter from './pages/tools/YouTubeScriptWriter';
 import YouTubeTitleGenerator from './pages/tools/YouTubeTitleGenerator';
@@ -72,9 +71,6 @@ const App: React.FC = () => {
     if (path.includes('/tools/image/enhance')) return <PhotoEnhancer />;
     if (path.includes('/tools/image/bg-remove')) return <BackgroundRemover />;
     if (path.includes('/tools/image/object-remover')) return <ObjectRemover />;
-    
-    // Utility Tools
-    if (path.includes('/tools/utility/audio')) return <AudioConverter />;
     
     // Fallback
     return (

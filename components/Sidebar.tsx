@@ -64,7 +64,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div className="p-4 bg-gradient-to-br from-navy-800 to-navy-700 rounded-xl border border-white/5">
             <Sparkles className="w-6 h-6 text-primary mx-auto mb-2" />
             <p className="text-xs text-gray-300 font-medium">Free Unlimited Usage</p>
-            <p className="text-[10px] text-gray-500 mt-2">© Tahmid Hasan all rights reserved</p>
           </div>
         </div>
       </div>
