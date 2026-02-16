@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { editImage } from '../../services/geminiService';
+import { generateSegmentationMask } from '../../services/geminiService';
 import { UploadCloud, Scissors, RefreshCw, Download, Image as ImageIcon, Sparkles } from 'lucide-react';
 
 const BackgroundRemover: React.FC = () => {
@@ -7,13 +7,39 @@ const BackgroundRemover: React.FC = () => {
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [aspectRatio, setAspectRatio] = useState<string>("1:1");
+
+  const getClosestAspectRatio = (width: number, height: number): string => {
+    const ratio = width / height;
+    const ratios = {
+      "1:1": 1,
+      "3:4": 3/4,
+      "4:3": 4/3,
+      "9:16": 9/16,
+      "16:9": 16/9
+    };
+    
+    return Object.entries(ratios).reduce((prev, curr) => {
+      return (Math.abs(curr[1] - ratio) < Math.abs(ratios[prev as keyof typeof ratios] - ratio) ? curr[0] : prev);
+    }, "1:1");
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const f = e.target.files[0];
       setFile(f);
       const reader = new FileReader();
-      reader.onload = (ev) => setFilePreview(ev.target?.result as string);
+      reader.onload = (ev) => {
+        const src = ev.target?.result as string;
+        setFilePreview(src);
+        
+        // Calculate aspect ratio
+        const img = new Image();
+        img.onload = () => {
+            setAspectRatio(getClosestAspectRatio(img.width, img.height));
+        };
+        img.src = src;
+      };
       reader.readAsDataURL(f);
       setResult(null);
     }
@@ -28,19 +54,59 @@ const BackgroundRemover: React.FC = () => {
       const base64 = filePreview.split(',')[1];
       const mime = file.type;
       
-      const prompt = "Remove the background from this image. Keep the main subject exactly as is, but replace the background with a plain white or transparent background.";
+      // Step 1: Generate Mask
+      const maskDataUrl = await generateSegmentationMask(base64, mime, aspectRatio);
       
-      const editedImage = await editImage(prompt, base64, mime);
-      
-      if (editedImage) {
-        setResult(editedImage);
-      } else {
-        alert("Could not remove background. Please try a different image.");
+      if (!maskDataUrl) {
+          throw new Error("Failed to generate mask");
       }
+
+      // Step 2: Composite Mask with Original
+      const originalImg = new Image();
+      originalImg.src = filePreview;
+      await new Promise(r => { originalImg.onload = r; });
+
+      const maskImg = new Image();
+      maskImg.src = maskDataUrl;
+      await new Promise(r => { maskImg.onload = r; });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = originalImg.width;
+      canvas.height = originalImg.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error("No Canvas Context");
+
+      // Draw original
+      ctx.drawImage(originalImg, 0, 0);
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imgData.data;
+
+      // Draw mask to temp canvas to resize it to match original perfectly
+      const maskCanvas = document.createElement('canvas');
+      maskCanvas.width = canvas.width;
+      maskCanvas.height = canvas.height;
+      const maskCtx = maskCanvas.getContext('2d');
+      if (!maskCtx) throw new Error("No Mask Context");
+      
+      // Draw mask image stretched to fit original dimensions
+      maskCtx.drawImage(maskImg, 0, 0, canvas.width, canvas.height);
+      const maskData = maskCtx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+      // Apply Alpha Mask
+      for (let i = 0; i < data.length; i += 4) {
+          // Use Red channel of mask as brightness
+          const maskVal = maskData[i]; 
+          // Apply to Alpha channel of original
+          // Using a slight contrast curve or just direct mapping
+          data[i + 3] = maskVal;
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+      setResult(canvas.toDataURL('image/png'));
 
     } catch (e) {
       console.error(e);
-      alert("Processing failed.");
+      alert("Processing failed. Please try again with a simpler image.");
     } finally {
       setLoading(false);
     }
@@ -113,7 +179,7 @@ const BackgroundRemover: React.FC = () => {
                    <div className="text-center p-6">
                      <div className="w-16 h-16 border-4 border-navy-700 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
                      <p className="text-sm font-medium text-gray-400">
-                       Isolating subject...
+                       Generating Mask & Compositing...
                      </p>
                    </div>
                 ) : (
@@ -141,7 +207,7 @@ const BackgroundRemover: React.FC = () => {
               }}
               className="w-full py-3 bg-white text-navy-900 rounded-xl font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:bg-gray-200"
             >
-              <Download size={20} /> Download
+              <Download size={20} /> Download PNG
             </button>
           </div>
         </div>

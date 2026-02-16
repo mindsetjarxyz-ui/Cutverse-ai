@@ -111,6 +111,52 @@ export const editImage = async (prompt: string, imageBase64: string, mimeType: s
   }
 };
 
+export const generateSegmentationMask = async (
+  imageBase64: string, 
+  mimeType: string,
+  aspectRatio: string = "1:1"
+): Promise<string> => {
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error("API Key Missing");
+
+  try {
+    const ai = getAiClient();
+    const parts = [
+      {
+        inlineData: {
+          mimeType: mimeType,
+          data: imageBase64
+        }
+      },
+      { text: "Generate a pure black and white binary mask of the main subject in this image. The subject should be white (#FFFFFF) and the background should be black (#000000). The mask must perfectly match the subject's outline and composition." }
+    ];
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: { parts },
+      config: {
+        imageConfig: {
+          aspectRatio: aspectRatio as any
+        }
+      }
+    });
+
+    const candidates = response.candidates;
+    if (candidates && candidates.length > 0) {
+      const parts = candidates[0].content.parts;
+      for (const part of parts) {
+        if (part.inlineData && part.inlineData.data) {
+          return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+        }
+      }
+    }
+    return "";
+  } catch (error) {
+    console.error("Mask Generation Error:", error);
+    throw error;
+  }
+};
+
 // Generic multimodal function (Text/Image/Audio -> Text)
 export const generateMultimodal = async (
   prompt: string,
