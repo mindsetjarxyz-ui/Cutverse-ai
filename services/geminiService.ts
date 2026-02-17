@@ -45,7 +45,11 @@ export const generateText = async (
   }
 };
 
-export const generateImage = async (prompt: string): Promise<string> => {
+export const generateImage = async (
+  prompt: string, 
+  aspectRatio: string = "1:1", 
+  style: string = "None"
+): Promise<string> => {
   const apiKey = getApiKey();
   if (!apiKey) {
     throw new Error("API Key is missing.");
@@ -53,9 +57,20 @@ export const generateImage = async (prompt: string): Promise<string> => {
 
   try {
     const ai = getAiClient();
+    
+    // Append style to prompt if selected
+    const finalPrompt = style && style !== 'None' 
+      ? `${prompt}. Art style: ${style}, high quality, detailed.` 
+      : prompt;
+
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
-      contents: prompt,
+      contents: finalPrompt,
+      config: {
+        imageConfig: {
+          aspectRatio: aspectRatio as any
+        }
+      }
     });
 
     const candidates = response.candidates;

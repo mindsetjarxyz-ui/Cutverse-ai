@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { generateSegmentationMask } from '../../services/geminiService';
-import { UploadCloud, Scissors, RefreshCw, Download, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { UploadCloud, Scissors, RefreshCw, Download, Image as ImageIcon, Sparkles, Layers } from 'lucide-react';
 
 const BackgroundRemover: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -32,8 +32,8 @@ const BackgroundRemover: React.FC = () => {
       reader.onload = (ev) => {
         const src = ev.target?.result as string;
         setFilePreview(src);
+        setResult(null);
         
-        // Calculate aspect ratio
         const img = new Image();
         img.onload = () => {
             setAspectRatio(getClosestAspectRatio(img.width, img.height));
@@ -41,7 +41,6 @@ const BackgroundRemover: React.FC = () => {
         img.src = src;
       };
       reader.readAsDataURL(f);
-      setResult(null);
     }
   };
 
@@ -92,13 +91,21 @@ const BackgroundRemover: React.FC = () => {
       maskCtx.drawImage(maskImg, 0, 0, canvas.width, canvas.height);
       const maskData = maskCtx.getImageData(0, 0, canvas.width, canvas.height).data;
 
-      // Apply Alpha Mask
+      // Apply Alpha Mask based on brightness of the mask
+      // White in mask = Opaque in result
+      // Black in mask = Transparent in result
       for (let i = 0; i < data.length; i += 4) {
-          // Use Red channel of mask as brightness
-          const maskVal = maskData[i]; 
-          // Apply to Alpha channel of original
-          // Using a slight contrast curve or just direct mapping
-          data[i + 3] = maskVal;
+          // Use Red channel as brightness
+          const brightness = maskData[i]; 
+          
+          // Apply thresholding for sharper edges, or use smooth interpolation
+          // Simple Threshold:
+          // const alpha = brightness > 128 ? 255 : 0;
+          
+          // Smooth (better for hair etc, assuming AI mask has gradients)
+          // But AI mask is usually binary-ish.
+          
+          data[i + 3] = brightness;
       }
 
       ctx.putImageData(imgData, 0, 0);
@@ -106,7 +113,7 @@ const BackgroundRemover: React.FC = () => {
 
     } catch (e) {
       console.error(e);
-      alert("Processing failed. Please try again with a simpler image.");
+      alert("Processing failed. Please try a simpler image.");
     } finally {
       setLoading(false);
     }
@@ -116,7 +123,7 @@ const BackgroundRemover: React.FC = () => {
     <div className="max-w-5xl mx-auto pb-10">
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-heading font-bold text-white mb-2">Background Remover</h1>
-        <p className="text-gray-400">Instantly isolate subjects from your photos.</p>
+        <p className="text-gray-400">Instantly isolate subjects using AI masking technology.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
@@ -170,16 +177,23 @@ const BackgroundRemover: React.FC = () => {
             <Sparkles size={18} /> Result
           </h3>
 
-          <div className="flex-1 rounded-2xl overflow-hidden bg-navy-900 border border-white/5 relative bg-[url('https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.tM6j7D3pGzZg3A9hG_x8iQHaHa%26pid%3DApi&f=1&ipt=e865611488c2670d859187313271707297395563967812856285873958739182&ipo=images')] bg-contain">
+          <div 
+            className="flex-1 rounded-2xl overflow-hidden bg-navy-900 border border-white/5 relative"
+            style={{
+                backgroundImage: `linear-gradient(45deg, #1f2937 25%, transparent 25%), linear-gradient(-45deg, #1f2937 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #1f2937 75%), linear-gradient(-45deg, transparent 75%, #1f2937 75%)`,
+                backgroundSize: '20px 20px',
+                backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px'
+            }}
+          >
             {result ? (
-              <img src={result} alt="Removed BG" className="w-full h-full object-contain" />
+              <img src={result} alt="Removed BG" className="w-full h-full object-contain relative z-10" />
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 bg-navy-900/90">
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 bg-navy-900/90 z-20">
                 {loading ? (
                    <div className="text-center p-6">
                      <div className="w-16 h-16 border-4 border-navy-700 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
                      <p className="text-sm font-medium text-gray-400">
-                       Generating Mask & Compositing...
+                       Generating mask...
                      </p>
                    </div>
                 ) : (

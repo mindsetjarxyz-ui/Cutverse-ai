@@ -1,19 +1,24 @@
 import React, { useState } from 'react';
 import { generateImage } from '../../services/geminiService';
-import { Download, Sparkles, Image as ImageIcon, RefreshCw } from 'lucide-react';
+import { Download, Sparkles, Image as ImageIcon, RefreshCw, Eye, X, ZoomIn } from 'lucide-react';
+
+const STYLES = ['None', 'Photorealistic', 'Anime', 'Oil Painting', 'Abstract', 'Cyberpunk', 'Watercolor', '3D Render', 'Sketch'];
 
 const ImageGenerator: React.FC = () => {
   const [prompt, setPrompt] = useState('');
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [aspect, setAspect] = useState('1:1');
+  const [style, setStyle] = useState('None');
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [zoom, setZoom] = useState(1);
 
   const handleGenerate = async () => {
     if (!prompt) return;
     setLoading(true);
     setResult(null);
     try {
-      const imageBase64 = await generateImage(prompt);
+      const imageBase64 = await generateImage(prompt, aspect, style);
       if (imageBase64) {
         setResult(imageBase64);
       } else {
@@ -26,7 +31,8 @@ const ImageGenerator: React.FC = () => {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (result) {
       const link = document.createElement('a');
       link.href = result;
@@ -34,6 +40,14 @@ const ImageGenerator: React.FC = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    }
+  };
+
+  const handleView = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (result) {
+      setZoom(1);
+      setIsPreviewOpen(true);
     }
   };
 
@@ -78,6 +92,25 @@ const ImageGenerator: React.FC = () => {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Art Style</label>
+                <div className="flex flex-wrap gap-2">
+                  {STYLES.map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setStyle(s)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                        style === s 
+                          ? 'bg-primary text-navy-900 border-primary' 
+                          : 'bg-navy-900 text-gray-400 border-white/10 hover:border-primary/50'
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <button
                 onClick={handleGenerate}
                 disabled={loading || !prompt}
@@ -92,25 +125,34 @@ const ImageGenerator: React.FC = () => {
 
         {/* Preview */}
         <div>
-          <div className="bg-navy-800 rounded-2xl border border-white/5 shadow-lg overflow-hidden aspect-square relative group">
+          <div className={`bg-navy-800 rounded-2xl border border-white/5 shadow-lg overflow-hidden relative group flex items-center justify-center ${aspect === '9:16' ? 'aspect-[9/16]' : aspect === '16:9' ? 'aspect-[16/9]' : 'aspect-square'}`}>
             {result ? (
               <>
                 <img 
                   src={result} 
                   alt="Generated AI" 
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain cursor-pointer"
+                  onClick={handleView}
                 />
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 pointer-events-none">
+                  <button 
+                    onClick={handleView}
+                    className="pointer-events-auto p-3 bg-white rounded-full text-navy-900 hover:bg-gray-200 transition-colors shadow-lg flex items-center justify-center"
+                    title="View Photo"
+                  >
+                    <Eye size={24} />
+                  </button>
                   <button 
                     onClick={handleDownload}
-                    className="p-3 bg-white rounded-full text-navy-900 hover:bg-gray-200 transition-colors shadow-lg"
+                    className="pointer-events-auto p-3 bg-white rounded-full text-navy-900 hover:bg-gray-200 transition-colors shadow-lg flex items-center justify-center"
+                    title="Download Photo"
                   >
                     <Download size={24} />
                   </button>
                 </div>
               </>
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center bg-navy-900 text-gray-500">
+              <div className="w-full h-full flex flex-col items-center justify-center bg-navy-900 text-gray-500 p-4">
                 {loading ? (
                   <div className="text-center">
                     <div className="w-12 h-12 border-4 border-navy-700 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
@@ -127,6 +169,38 @@ const ImageGenerator: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Lightbox Modal */}
+      {isPreviewOpen && result && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200 overflow-hidden" 
+          onClick={() => setIsPreviewOpen(false)}
+          onWheel={(e) => {
+            const delta = -e.deltaY * 0.002;
+            setZoom(z => Math.min(Math.max(0.5, z + delta), 8));
+          }}
+        >
+          <button 
+            className="absolute top-6 right-6 p-2 bg-white/10 text-white hover:bg-white/20 rounded-full transition-colors z-[60]"
+            onClick={() => setIsPreviewOpen(false)}
+          >
+            <X size={24} />
+          </button>
+          
+          <img 
+            src={result} 
+            alt="Full Preview" 
+            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl transition-transform duration-75 ease-out" 
+            style={{ transform: `scale(${zoom})` }}
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/50 text-white px-4 py-2 rounded-full text-sm pointer-events-none backdrop-blur-sm border border-white/10">
+            <ZoomIn size={14} className="text-primary" />
+            <span>Use mouse wheel to zoom: {Math.round(zoom * 100)}%</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

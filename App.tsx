@@ -101,6 +101,7 @@ const App: React.FC = () => {
         }}
         isOpen={sidebarOpen}
         onCloseMobile={() => setSidebarOpen(false)}
+        onNavigate={navigate}
       />
 
       <main className={`
