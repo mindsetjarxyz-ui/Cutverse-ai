@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import Home from './pages/Home';
@@ -15,19 +15,17 @@ import ObjectRemover from './pages/tools/ObjectRemover';
 import StudentAIWriter from './pages/tools/StudentAIWriter';
 import { Tool, ToolCategory } from './types';
 import { TOOLS } from './constants';
-import { MessageSquare } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<ToolCategory>(ToolCategory.ALL);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentPath, setCurrentPath] = useState(window.location.hash || '#/');
 
-  // Handle hash routing
+  // Listen for navigation changes
   useEffect(() => {
     const handleHashChange = () => {
-      const hash = window.location.hash || '#/';
-      setCurrentPath(hash);
-      window.scrollTo(0, 0);
+      setCurrentPath(window.location.hash || '#/');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     window.addEventListener('hashchange', handleHashChange);
@@ -36,14 +34,14 @@ const App: React.FC = () => {
 
   const navigate = (path: string) => {
     window.location.hash = path;
+    setSidebarOpen(false);
   };
 
   const handleToolClick = (tool: Tool) => {
     navigate(tool.path);
   };
 
-  // Router logic
-  const renderContent = () => {
+  const currentContent = useMemo(() => {
     const path = currentPath.replace('#', '');
     
     if (path === '/' || path === '') {
@@ -56,52 +54,61 @@ const App: React.FC = () => {
       );
     }
     
-    // Student AI Tools
-    if (path.includes('/tools/student/paragraph')) return <StudentAIWriter toolType="Paragraph" toolName="Paragraph Writer" />;
-    if (path.includes('/tools/student/essay')) return <StudentAIWriter toolType="Academic Essay" toolName="Essay Writer" />;
-    if (path.includes('/tools/student/composition')) return <StudentAIWriter toolType="Creative Composition" toolName="Composition Writer" />;
-    if (path.includes('/tools/student/letter')) return <StudentAIWriter toolType="Letter" toolName="Letter Writer" />;
-    if (path.includes('/tools/student/story')) return <StudentAIWriter toolType="Short Story" toolName="Story Writer" />;
-    if (path.includes('/tools/student/summary')) return <StudentAIWriter toolType="Summary" toolName="Summary Generator" />;
-    if (path.includes('/tools/student/grammar')) return <StudentAIWriter toolType="Corrected and Improved Text" toolName="Grammar Improver" />;
-    if (path.includes('/tools/student/speech')) return <StudentAIWriter toolType="Speech" toolName="Speech Writer" />;
-    if (path.includes('/tools/student/debate')) return <StudentAIWriter toolType="Debate Arguments" toolName="Debate Writer" />;
-    if (path.includes('/tools/student/application')) return <StudentAIWriter toolType="Application" toolName="Application Writer" />;
+    // Student Tool Pattern Matching
+    if (path.startsWith('/tools/student/')) {
+      const studentTools: Record<string, { type: string, name: string }> = {
+        'paragraph': { type: "Paragraph", name: "Paragraph Writer" },
+        'essay': { type: "Academic Essay", name: "Essay Writer" },
+        'composition': { type: "Creative Composition", name: "Composition Writer" },
+        'letter': { type: "Letter", name: "Letter Writer" },
+        'story': { type: "Short Story", name: "Story Writer" },
+        'summary': { type: "Summary", name: "Summary Generator" },
+        'grammar': { type: "Corrected and Improved Text", name: "Grammar Improver" },
+        'speech': { type: "Speech", name: "Speech Writer" },
+        'debate': { type: "Debate Arguments", name: "Debate Writer" },
+        'application': { type: "Application", name: "Application Writer" }
+      };
+      const key = path.split('/').pop() || '';
+      if (studentTools[key]) {
+        return <StudentAIWriter toolType={studentTools[key].type} toolName={studentTools[key].name} />;
+      }
+    }
 
-    // Writing Tools
-    if (path.includes('/tools/writing/writer')) return <ContentWriter title="AI Content Writer" />;
-    if (path.includes('/tools/writing/blog')) return <ContentWriter initialType="Blog Post" title="Blog Post Creator" />;
-    
-    // Social Tools
-    if (path.includes('/tools/social/youtube-helper')) return <YouTubeHelper />;
-    if (path.includes('/tools/social/youtube-script')) return <YouTubeScriptWriter />;
-    if (path.includes('/tools/social/youtube-titles')) return <YouTubeTitleGenerator />;
-    if (path.includes('/tools/social/youtube-desc')) return <YouTubeDescriptionGenerator />;
-    if (path.includes('/tools/social/youtube-tags')) return <YouTubeTagGenerator />;
-    if (path.includes('/tools/social/captions')) return <ContentWriter initialType="Instagram Caption" title="Social Captions" />;
-    
-    // Image Tools
-    if (path.includes('/tools/image/generator')) return <ImageGenerator />;
-    if (path.includes('/tools/image/enhance')) return <PhotoEnhancer />;
-    if (path.includes('/tools/image/bg-remove')) return <BackgroundRemover />;
-    if (path.includes('/tools/image/object-remover')) return <ObjectRemover />;
-    
-    // Fallback
-    return (
-      <div className="flex flex-col items-center justify-center h-[60vh] text-center px-4 text-gray-300">
-        <h2 className="text-2xl font-bold mb-2">Page Not Found</h2>
-        <button 
-          onClick={() => navigate('/')}
-          className="px-6 py-2 bg-primary text-navy-900 font-bold rounded-lg hover:bg-primary-hover mt-4"
-        >
-          Go Home
-        </button>
-      </div>
-    );
-  };
+    // Direct Tool Routes
+    switch (path) {
+      case '/tools/writing/writer': return <ContentWriter title="AI Content Writer" />;
+      case '/tools/writing/blog': return <ContentWriter initialType="Blog Post" title="Blog Post Creator" />;
+      case '/tools/social/youtube-helper': return <YouTubeHelper />;
+      case '/tools/social/youtube-script': return <YouTubeScriptWriter />;
+      case '/tools/social/youtube-titles': return <YouTubeTitleGenerator />;
+      case '/tools/social/youtube-desc': return <YouTubeDescriptionGenerator />;
+      case '/tools/social/youtube-tags': return <YouTubeTagGenerator />;
+      case '/tools/social/captions': return <ContentWriter initialType="Instagram Caption" title="Social Captions" />;
+      case '/tools/image/generator': return <ImageGenerator />;
+      case '/tools/image/enhance': return <PhotoEnhancer />;
+      case '/tools/image/bg-remove': return <BackgroundRemover />;
+      case '/tools/image/object-remover': return <ObjectRemover />;
+      default:
+        return (
+          <div className="flex flex-col items-center justify-center h-[70vh] text-center px-4">
+            <div className="p-4 bg-navy-800 rounded-full mb-6">
+              <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">Finding your tool...</h2>
+            <p className="text-gray-500 mb-8 max-w-sm">If this takes too long, the tool might have been moved.</p>
+            <button 
+              onClick={() => navigate('/')}
+              className="px-8 py-3 bg-primary text-navy-900 font-bold rounded-xl hover:bg-primary-hover transition-all"
+            >
+              Return Home
+            </button>
+          </div>
+        );
+    }
+  }, [currentPath, activeCategory]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-navy-900 via-[#0f172a] to-navy-900 font-sans text-gray-100 selection:bg-primary/30 flex flex-col">
+    <div className="min-h-screen bg-navy-900 font-sans text-gray-100 selection:bg-primary/30 flex flex-col">
       <Navbar 
         onMenuClick={() => setSidebarOpen(!sidebarOpen)} 
         onNavigate={navigate}
@@ -111,7 +118,7 @@ const App: React.FC = () => {
         activeCategory={activeCategory}
         onSelectCategory={(cat) => {
           setActiveCategory(cat);
-          if (currentPath !== '#/') navigate('/');
+          if (window.location.hash !== '#/') navigate('/');
         }}
         isOpen={sidebarOpen}
         onCloseMobile={() => setSidebarOpen(false)}
@@ -122,13 +129,13 @@ const App: React.FC = () => {
         pt-24 px-4 md:px-8 pb-12 transition-all duration-300
         lg:ml-64 min-h-screen flex flex-col
       `}>
-        <div className="flex-grow">
-          {renderContent()}
+        <div className="flex-grow max-w-7xl mx-auto w-full animate-in fade-in duration-500">
+          {currentContent}
         </div>
         
-        <footer className="mt-16 border-t border-white/5 pt-8 pb-4 text-center">
-          <p className="text-gray-500 text-sm font-medium">
-            &copy; Cutverse AI&trade;
+        <footer className="mt-20 border-t border-white/5 py-10 text-center">
+          <p className="text-gray-500 text-sm font-heading">
+            © Cutverse™
           </p>
         </footer>
       </main>

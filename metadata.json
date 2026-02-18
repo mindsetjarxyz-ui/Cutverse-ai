@@ -1,5 +1,7 @@
 {
   "name": "Cutverse Ai",
-  "description": "A minimalist, modern AI tools hub featuring functional text, image, and utility tools without login requirements.",
-  "requestFramePermissions": []
+  "description": "A minimalist, modern AI tools hub featuring functional text and image tools without login requirements.",
+  "requestFramePermissions": [
+    "camera"
+  ]
 }

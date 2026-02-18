@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tool, ToolCategory } from '../types';
 import ToolCard from '../components/ToolCard';
-import { Sparkles, Zap, ShieldCheck } from 'lucide-react';
+import { Zap, Shield, Star } from 'lucide-react';
 
 interface HomeProps {
   tools: Tool[];
@@ -11,58 +11,46 @@ interface HomeProps {
 
 const Home: React.FC<HomeProps> = ({ tools, activeCategory, onToolClick }) => {
   const filteredTools = tools.filter(t => {
-    // Category Filter
     return activeCategory === ToolCategory.ALL || t.category === activeCategory;
   });
 
   return (
-    <div className="max-w-6xl mx-auto pb-20 space-y-12">
-      
+    <div className="w-full pb-20">
       {/* Hero Section */}
-      {activeCategory === ToolCategory.ALL && (
-        <section className="text-center px-4 relative overflow-hidden rounded-3xl bg-navy-800 border border-white/5 py-16">
-          {/* Background Glows */}
-          <div className="absolute top-0 left-1/4 w-64 h-64 bg-primary/10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-accent/10 rounded-full blur-3xl"></div>
-          
-          <div className="relative z-10 flex flex-col items-center">
-            <h1 className="text-4xl md:text-6xl font-heading font-bold text-white tracking-tight mb-4">
-              Create with <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">Cutverse AI</span>
-            </h1>
-            <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto font-light mb-10">
-              Professional AI tools for everyone.
-            </p>
-            
-            <div className="flex flex-wrap justify-center gap-8">
-              <div className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                <div className="p-1.5 rounded-full bg-blue-500/20 text-blue-400"><Zap size={14} /></div>
-                <span>Lightning Fast</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                <div className="p-1.5 rounded-full bg-green-500/20 text-green-400"><ShieldCheck size={14} /></div>
-                <span>Privacy First</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                <div className="p-1.5 rounded-full bg-purple-500/20 text-purple-400"><Sparkles size={14} /></div>
-                <span>Top Quality AI</span>
-              </div>
-            </div>
+      <div className="max-w-4xl mx-auto text-center pt-10 pb-20">
+        <h1 className="text-5xl md:text-7xl font-heading font-bold text-white mb-6 tracking-tight leading-tight">
+          Create with <span className="hero-gradient">Cutverse AI</span>
+        </h1>
+        <p className="text-gray-400 text-lg md:text-xl font-medium mb-12 max-w-2xl mx-auto">
+          Professional AI tools for everyone.
+        </p>
+        
+        <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8">
+          <div className="flex items-center gap-2 text-primary font-bold text-[10px] uppercase tracking-widest bg-primary/5 px-5 py-2.5 rounded-full border border-primary/20">
+            <Zap size={14} fill="currentColor" />
+            Lightning Fast
           </div>
-        </section>
-      )}
+          <div className="flex items-center gap-2 text-green-500 font-bold text-[10px] uppercase tracking-widest bg-green-500/5 px-5 py-2.5 rounded-full border border-green-500/20">
+            <Shield size={14} fill="currentColor" />
+            Privacy First
+          </div>
+          <div className="flex items-center gap-2 text-purple-500 font-bold text-[10px] uppercase tracking-widest bg-purple-500/5 px-5 py-2.5 rounded-full border border-purple-500/20">
+            <Star size={14} fill="currentColor" />
+            Top Quality AI
+          </div>
+        </div>
+      </div>
 
-      {/* Grid */}
-      <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="flex items-center justify-between mb-6 px-2">
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            {activeCategory === ToolCategory.ALL ? 'All Available Tools' : activeCategory}
-            <span className="text-sm font-normal text-gray-400 ml-2 bg-navy-800 px-2 py-0.5 rounded-full border border-white/10">
-              {filteredTools.length}
-            </span>
-          </h2>
+      {/* Grid Container */}
+      <div className="max-w-6xl mx-auto px-4 md:px-0">
+        <div className="flex items-center gap-3 mb-10">
+          <h2 className="text-2xl font-heading font-bold text-white">{activeCategory}</h2>
+          <span className="bg-navy-800 text-gray-500 px-2.5 py-1 rounded-lg text-[11px] font-bold border border-white/5">
+            {filteredTools.length}
+          </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
           {filteredTools.map(tool => (
             <ToolCard 
               key={tool.id} 
@@ -71,7 +59,7 @@ const Home: React.FC<HomeProps> = ({ tools, activeCategory, onToolClick }) => {
             />
           ))}
         </div>
-      </section>
+      </div>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { generateText } from '../../services/geminiService';
-import { Youtube, Tag, AlignLeft, RefreshCw, Copy, Check, PlusCircle, Trash2, FileText } from 'lucide-react';
+import { generateText } from '../../services/aiService';
+import { Youtube, Tag, AlignLeft, RefreshCw, Copy, Check, FileText, ArrowLeft } from 'lucide-react';
 import RichTextRenderer from '../../components/RichTextRenderer';
 
 type Tab = 'titles' | 'description' | 'script' | 'tags';
@@ -12,7 +12,6 @@ interface TabData {
 
 const YouTubeHelper: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('titles');
-  
   const [tabData, setTabData] = useState<Record<Tab, TabData>>({
     titles: { input: '', result: '' },
     description: { input: '', result: '' },
@@ -33,192 +32,116 @@ const YouTubeHelper: React.FC = () => {
   ];
 
   const updateCurrentTab = (updates: Partial<TabData>) => {
-    setTabData(prev => ({
-      ...prev,
-      [activeTab]: { ...prev[activeTab], ...updates }
-    }));
-  };
-
-  const handleClearTitle = () => {
-    setTabData(prev => ({
-      ...prev,
-      titles: { input: '', result: '' }
-    }));
+    setTabData(prev => ({ ...prev, [activeTab]: { ...prev[activeTab], ...updates } }));
   };
 
   useEffect(() => {
     const fullResult = tabData[activeTab].result;
-
-    if (!fullResult) {
-      setDisplayedResult('');
-      return;
-    }
-
+    if (!fullResult) { setDisplayedResult(''); return; }
     if (typeIntervalRef.current) window.clearInterval(typeIntervalRef.current);
-
     let currentIndex = 0;
     setDisplayedResult('');
-
     typeIntervalRef.current = window.setInterval(() => {
-      const chunkSize = 15; // Faster typing for better UX with RichText
+      const chunkSize = 35; // Fast typewriter
       const nextIndex = Math.min(currentIndex + chunkSize, fullResult.length);
-      
       setDisplayedResult(fullResult.substring(0, nextIndex));
       currentIndex = nextIndex;
-
-      if (currentIndex >= fullResult.length) {
-        if (typeIntervalRef.current) window.clearInterval(typeIntervalRef.current);
-      }
-    }, 5); 
-
-    return () => {
-      if (typeIntervalRef.current) window.clearInterval(typeIntervalRef.current);
-    };
+      if (currentIndex >= fullResult.length) { if (typeIntervalRef.current) window.clearInterval(typeIntervalRef.current); }
+    }, 10); 
+    return () => { if (typeIntervalRef.current) window.clearInterval(typeIntervalRef.current); };
   }, [tabData[activeTab].result, activeTab]);
-
-  const getInputPlaceholder = () => {
-      switch(activeTab) {
-          case 'titles': return "Enter your video topic (e.g. 'Street Food in Japan')...";
-          case 'script': return "Enter video topic, key points, or title...";
-          case 'description': return "Paste your video title here...";
-          case 'tags': return "Enter video title or main keyword...";
-          default: return "";
-      }
-  }
 
   const handleGenerate = async () => {
     const currentInput = tabData[activeTab].input;
     if (!currentInput) return;
-
     setLoading(true);
     updateCurrentTab({ result: '' });
-    
     try {
       let prompt = '';
-      let systemInstruction = "You are a YouTube growth and SEO expert.";
+      if (activeTab === 'titles') { prompt = `Generate 5 viral YouTube titles for: "${currentInput}". Use plain text only.`; }
+      else if (activeTab === 'script') { prompt = `Write an engaging YouTube script for: "${currentInput}". Use plain text headers.`; }
+      else if (activeTab === 'description') { prompt = `Write an SEO description for: "${currentInput}". Use plain text only.`; }
+      else if (activeTab === 'tags') { prompt = `Generate 30 SEO tags for: "${currentInput}". Separate by commas. Plain text only.`; }
       
-      if (activeTab === 'titles') {
-        prompt = `Generate exactly 5 clickbait-style, highly engaging, and viral YouTube titles for a video about: "${currentInput}". Make them catchy but relevant. Use **bold** for key keywords.`;
-      } else if (activeTab === 'script') {
-        prompt = `Write a complete, engaging YouTube video script for a video about: "${currentInput}". 
-        Structure:
-        1. **Hook (0-30s)**: Grab attention immediately.
-        2. **Intro**: Briefly state what the video is about.
-        3. **Content Body**: Break down into 3-5 key sections/steps. Use ### for section headers.
-        4. **Engagement**: Remind to like/subscribe in a natural way.
-        5. **Conclusion & CTA**: Summary and what to watch next.
-        Tone: Energetic, conversational, and audience-focused.`;
-      } else if (activeTab === 'description') {
-        prompt = `Write a full, SEO-optimized YouTube video description for a video titled: "${currentInput}". Include an engaging introduction, bullet points (using - ) for what is covered, and placeholders for timestamps and social links. Use **bold** for keywords.`;
-      } else if (activeTab === 'tags') {
-        prompt = `Generate a list of 30 high-volume, low-competition SEO tags/keywords for a YouTube video titled: "${currentInput}". Return them as a comma-separated list.`;
-      }
-
-      const text = await generateText(prompt, systemInstruction);
+      const text = await generateText(prompt, "You are a YouTube expert. Do not use markdown symbols.");
       updateCurrentTab({ result: text });
-    } catch (e) {
-      console.error(e);
-      alert("Error generating content. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { alert("Error generating content."); } finally { setLoading(false); }
   };
 
   const currentData = tabData[activeTab];
 
   return (
-    <div className="max-w-4xl mx-auto pb-10">
-      <div className="mb-8">
+    <div className="max-w-6xl mx-auto pb-10 px-4">
+      <button 
+        onClick={() => window.location.hash = '#/'} 
+        className="flex items-center text-xs font-bold text-gray-500 hover:text-white mb-8 transition-colors"
+      >
+        <ArrowLeft size={16} className="mr-2" /> 
+        Back to Tools
+      </button>
+
+      <div className="mb-8 text-center md:text-left">
         <h1 className="text-3xl font-heading font-bold text-white mb-2">YouTube All-in-One</h1>
-        <p className="text-gray-400">Everything you need to optimize your videos and grow your channel.</p>
+        <p className="text-gray-400">Optimize your channel for explosive growth.</p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex flex-wrap gap-2 mb-8 bg-navy-800 p-2 rounded-xl border border-white/5 shadow-lg">
+      <div className="flex flex-wrap gap-2 mb-8 bg-navy-800 p-2 rounded-2xl border border-white/5 shadow-xl">
         {tabs.map(tab => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as Tab)}
-            className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all flex-1 justify-center
-              ${activeTab === tab.id 
-                ? 'bg-red-600 text-white shadow-md' 
-                : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'}`}
+            onClick={() => {
+              setActiveTab(tab.id as Tab);
+              setCopied(false);
+            }}
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-bold transition-all flex-1 justify-center tracking-tight
+              ${activeTab === tab.id ? 'bg-red-600 text-white shadow-lg shadow-red-900/20' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
           >
-            <tab.icon size={18} />
-            <span className="hidden sm:inline">{tab.label}</span>
+            <tab.icon size={16} />
+            <span className="hidden sm:inline uppercase">{tab.label}</span>
           </button>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Controls */}
-        <div className="lg:col-span-1">
-          <div className="bg-navy-800 p-6 rounded-2xl border border-white/5 shadow-lg space-y-4">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-gray-300">
-                  {activeTab === 'description' || activeTab === 'tags' ? 'Video Title' : 'Video Topic'}
-                </label>
-                {activeTab === 'titles' && currentData.input && (
-                    <button 
-                      onClick={handleClearTitle}
-                      className="text-xs flex items-center gap-1 text-red-400 hover:text-red-300"
-                    >
-                      <Trash2 size={12} /> Clear
-                    </button>
-                )}
-              </div>
-              <textarea
-                className="w-full rounded-xl border-white/10 border p-3 text-sm focus:ring-primary focus:border-primary min-h-[150px] bg-navy-900 text-gray-200 resize-none placeholder-gray-600"
-                placeholder={getInputPlaceholder()}
-                value={currentData.input}
-                onChange={(e) => updateCurrentTab({ input: e.target.value })}
-              ></textarea>
-            </div>
-
-            <div className="space-y-3">
-              <button
-                onClick={handleGenerate}
-                disabled={loading || !currentData.input}
-                className="w-full py-3 bg-gradient-to-r from-red-600 to-red-500 text-white rounded-xl font-medium shadow-lg hover:shadow-red-500/20 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {loading ? <RefreshCw className="animate-spin" size={20} /> : <Youtube size={20} />}
-                {loading ? 'Processing...' : 'Generate'}
-              </button>
-
-              {activeTab === 'titles' && (
-                <button
-                  onClick={handleClearTitle}
-                  className="w-full py-3 bg-navy-900 border border-white/10 text-gray-300 rounded-xl font-medium hover:bg-navy-700 transition-colors flex items-center justify-center gap-2"
-                >
-                  <PlusCircle size={20} />
-                  New Title
-                </button>
-              )}
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-4">
+          <div className="bg-navy-800 p-6 rounded-3xl border border-white/5 space-y-4 shadow-xl">
+            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Enter Video Topic</label>
+            <textarea
+              className="w-full rounded-2xl border-white/10 border p-4 text-sm bg-navy-950/50 text-gray-200 min-h-[180px] placeholder-gray-700 focus:border-red-500/50 outline-none transition-all"
+              placeholder="e.g. My travel vlog to Japan..."
+              value={currentData.input}
+              onChange={(e) => updateCurrentTab({ input: e.target.value })}
+            ></textarea>
+            <button
+              onClick={handleGenerate}
+              disabled={loading || !currentData.input}
+              className="w-full py-4 bg-red-600 text-white rounded-2xl font-bold shadow-lg shadow-red-900/30 flex items-center justify-center gap-2 hover:bg-red-500 transition-all active:scale-[0.98]"
+            >
+              {loading ? <RefreshCw className="animate-spin" size={20} /> : <Youtube size={20} />}
+              {loading ? 'Processing...' : 'Generate Content'}
+            </button>
           </div>
         </div>
 
-        {/* Output */}
-        <div className="lg:col-span-2">
-          <div className="bg-navy-800 rounded-2xl border border-white/5 shadow-lg min-h-[500px] flex flex-col h-full relative">
-            <div className="border-b border-white/5 p-4 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-300">Result</h3>
+        <div className="lg:col-span-8">
+          <div className="bg-navy-800 rounded-3xl border border-white/5 shadow-xl min-h-[500px] flex flex-col h-full relative overflow-hidden">
+            <div className="border-b border-white/5 p-4 flex items-center justify-between bg-navy-800/50">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{activeTab} RESULT</span>
               <button 
                 onClick={() => { navigator.clipboard.writeText(currentData.result); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
                 disabled={!currentData.result}
-                className="p-2 text-gray-400 hover:text-primary hover:bg-white/5 rounded-lg transition-colors"
+                className="p-2 text-gray-500 hover:text-white rounded-lg transition-all"
               >
-                {copied ? <Check size={18} /> : <Copy size={18} />}
+                {copied ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
               </button>
             </div>
-            <div className="p-6 flex-grow overflow-y-auto">
+            <div className="p-8 flex-grow overflow-y-auto whitespace-pre-wrap text-gray-300 font-sans leading-relaxed">
               {displayedResult ? (
-                <RichTextRenderer content={displayedResult} />
+                displayedResult
               ) : (
-                <div className="h-full flex flex-col items-center justify-center text-gray-500">
-                  <Youtube size={32} className="opacity-20 mb-4" />
-                  <p>Generated content will appear here</p>
+                <div className="h-full flex flex-col items-center justify-center text-gray-800">
+                  <Youtube size={48} className="opacity-10 mb-4" />
+                  <p className="text-sm font-bold">Optimization results will appear here</p>
                 </div>
               )}
             </div>

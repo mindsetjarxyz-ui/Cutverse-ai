@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { generateText } from '../../services/geminiService';
+import { generateText } from '../../services/aiService';
 import { Copy, Download, RefreshCw, PenTool, Check, ArrowLeft } from 'lucide-react';
-import RichTextRenderer from '../../components/RichTextRenderer';
 
 interface ContentWriterProps {
   initialType?: string;
@@ -14,6 +13,7 @@ const ContentWriter: React.FC<ContentWriterProps> = ({
 }) => {
   const [topic, setTopic] = useState('');
   const [tone, setTone] = useState('Professional');
+  const [wordCount, setWordCount] = useState('300');
   const [type, setType] = useState(initialType);
   const [fullResult, setFullResult] = useState('');
   const [displayedResult, setDisplayedResult] = useState('');
@@ -22,7 +22,6 @@ const ContentWriter: React.FC<ContentWriterProps> = ({
   const typeIntervalRef = useRef<number | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // Reset state when tool changes
   useEffect(() => {
     setType(initialType);
     setFullResult('');
@@ -30,15 +29,10 @@ const ContentWriter: React.FC<ContentWriterProps> = ({
     setTopic('');
   }, [initialType]);
 
-  // Typewriter Effect Logic
   useEffect(() => {
     if (!fullResult) {
       setDisplayedResult('');
       return;
-    }
-
-    if (resultsRef.current && !loading) {
-       resultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     if (typeIntervalRef.current) window.clearInterval(typeIntervalRef.current);
@@ -47,21 +41,19 @@ const ContentWriter: React.FC<ContentWriterProps> = ({
     setDisplayedResult('');
 
     typeIntervalRef.current = window.setInterval(() => {
-      const chunkSize = 8; 
+      const chunkSize = 35; // Ultra fast
       const nextIndex = Math.min(currentIndex + chunkSize, fullResult.length);
-      
       setDisplayedResult(fullResult.substring(0, nextIndex));
       currentIndex = nextIndex;
-
       if (currentIndex >= fullResult.length) {
         if (typeIntervalRef.current) window.clearInterval(typeIntervalRef.current);
       }
-    }, 5);
+    }, 10);
 
     return () => {
       if (typeIntervalRef.current) window.clearInterval(typeIntervalRef.current);
     };
-  }, [fullResult, loading]);
+  }, [fullResult]);
 
   const handleGenerate = async () => {
     if (!topic) return;
@@ -70,161 +62,113 @@ const ContentWriter: React.FC<ContentWriterProps> = ({
     setDisplayedResult('');
     
     try {
-      const prompt = `Write a ${type} about "${topic}". The tone should be ${tone}. 
-      Requirements:
-      1. Start with a catchy main heading using markdown (# Title).
-      2. Use standard Markdown formatting (## for sections, **bold** for emphasis).
-      3. Keep it professional and well-structured.`;
-      const text = await generateText(prompt, "You are an expert content writer.");
+      const prompt = `Write a ${type} about "${topic}". Tone: ${tone}. Length: ~${wordCount} words.
+      CRITICAL INSTRUCTIONS:
+      1. DO NOT use markdown symbols like asterisks (*) or hash signs (#).
+      2. Use plain uppercase text for headings (e.g., INTRODUCTION, SECTION 1, CONCLUSION).
+      3. Organize into clearly labeled paragraphs.
+      4. Ensure the output is clean and easy to read without any formatting symbols.`;
+      
+      const text = await generateText(prompt, "You are a professional plain-text content writer. Never use markdown symbols.");
       setFullResult(text);
     } catch (e) {
-      alert("Failed to generate content. Please try again.");
+      alert("Generation failed.");
     } finally {
       setLoading(false);
     }
   };
 
   const copyToClipboard = () => {
-    // Strip markdown symbols for clean copying
-    const plainText = fullResult
-      .replace(/#{1,6}\s?/g, '') // Remove headers
-      .replace(/\*\*/g, '')      // Remove bold markers
-      .replace(/\*/g, '')        // Remove italic markers
-      .replace(/`/g, '')         // Remove code markers
-      .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Remove links, keep text
-      .trim();
-
-    navigator.clipboard.writeText(plainText);
+    navigator.clipboard.writeText(fullResult.trim());
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownload = () => {
-    if (!fullResult) return;
-    const blob = new Blob([fullResult], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${type.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-5xl mx-auto px-4">
       <button 
         onClick={() => window.location.hash = '#/'} 
-        className="flex items-center text-gray-400 hover:text-white mb-6 transition-colors group"
+        className="flex items-center text-xs font-bold text-gray-500 hover:text-white mb-8 transition-colors"
       >
-        <ArrowLeft size={20} className="mr-2 group-hover:-translate-x-1 transition-transform" /> 
+        <ArrowLeft size={16} className="mr-2" /> 
         Back to Tools
       </button>
 
       <div className="mb-8">
         <h1 className="text-3xl font-heading font-bold text-white mb-2">{title}</h1>
-        <p className="text-gray-400">Generate high-quality content optimized for your needs.</p>
+        <p className="text-gray-400">Professional writing without markdown symbols.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Input Section */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-navy-800 p-6 rounded-2xl border border-white/5 shadow-lg">
-            <div className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-4 space-y-6">
+          <div className="bg-navy-800 p-6 rounded-3xl border border-white/5 shadow-xl">
+            <div className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Content Type</label>
-                <select 
-                  className="w-full rounded-lg border-white/10 border p-2.5 text-sm focus:ring-primary focus:border-primary bg-navy-900 text-gray-200"
-                  value={type}
-                  onChange={(e) => setType(e.target.value)}
-                >
-                  <option>Blog Post</option>
-                  <option>Email</option>
-                  <option>Product Description</option>
-                  <option>Instagram Caption</option>
-                  <option>Video Script</option>
-                  <option>Social Media Post</option>
-                  <option>Essay</option>
-                  <option>Kids Story</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Tone</label>
-                <div className="flex flex-wrap gap-2">
-                  {['Professional', 'Casual', 'Funny', 'Excited', 'Persuasive'].map(t => (
-                    <button
-                      key={t}
-                      onClick={() => setTone(t)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                        tone === t 
-                          ? 'bg-primary text-navy-900 border-primary' 
-                          : 'bg-navy-900 text-gray-400 border-white/10 hover:border-primary/50'
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Topic / Key Points</label>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Topic</label>
                 <textarea 
-                  className="w-full rounded-lg border-white/10 border p-3 text-sm focus:ring-primary focus:border-primary min-h-[120px] bg-navy-900 text-gray-200 placeholder-gray-600"
-                  placeholder="e.g. The benefits of AI in daily life..."
+                  className="w-full rounded-xl border-white/10 border p-4 text-sm bg-navy-950/50 text-gray-200 min-h-[120px] focus:outline-none focus:border-primary/40 transition-all"
+                  placeholder="What should I write about?"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                ></textarea>
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Tone</label>
+                  <select 
+                    className="w-full rounded-xl border-white/10 border p-3 text-xs bg-navy-950 text-gray-200"
+                    value={tone}
+                    onChange={(e) => setTone(e.target.value)}
+                  >
+                    <option>Professional</option>
+                    <option>Casual</option>
+                    <option>Creative</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Words</label>
+                  <select 
+                    className="w-full rounded-xl border-white/10 border p-3 text-xs bg-navy-950 text-gray-200"
+                    value={wordCount}
+                    onChange={(e) => setWordCount(e.target.value)}
+                  >
+                    <option>200</option>
+                    <option>300</option>
+                    <option>400</option>
+                    <option>600</option>
+                    <option>700</option>
+                    <option>800</option>
+                  </select>
+                </div>
               </div>
 
               <button
                 onClick={handleGenerate}
                 disabled={loading || !topic}
-                className="w-full py-3 bg-gradient-to-r from-primary to-cyan-400 text-navy-900 rounded-xl font-bold shadow-lg hover:shadow-cyan-500/20 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full py-4 bg-primary text-navy-900 rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-primary-hover transition-all"
               >
-                {loading ? <RefreshCw className="animate-spin" size={20} /> : <PenTool size={20} />}
+                {loading ? <RefreshCw className="animate-spin" size={18} /> : <PenTool size={18} />}
                 {loading ? 'Writing...' : 'Generate Content'}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Output Section */}
-        <div className="lg:col-span-2" ref={resultsRef}>
-          <div className="bg-navy-800 rounded-2xl border border-white/5 shadow-lg min-h-[500px] flex flex-col h-full">
-            <div className="border-b border-white/5 p-4 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-300">Generated Result</h3>
+        <div className="lg:col-span-8">
+          <div className="bg-navy-800 rounded-3xl border border-white/5 shadow-xl min-h-[500px] flex flex-col h-full overflow-hidden">
+            <div className="border-b border-white/5 p-4 flex items-center justify-between bg-navy-800/50">
+              <span className="text-xs font-bold text-gray-500">PLAIN TEXT RESULT</span>
               <div className="flex gap-2">
-                <button 
-                  onClick={copyToClipboard}
-                  disabled={!fullResult}
-                  className="p-2 text-gray-400 hover:text-primary hover:bg-white/5 rounded-lg transition-colors"
-                  title="Copy"
-                >
+                <button onClick={copyToClipboard} disabled={!fullResult} className="p-2 text-gray-500 hover:text-white transition-colors">
                   {copied ? <Check size={18} /> : <Copy size={18} />}
-                </button>
-                <button 
-                  onClick={handleDownload}
-                  disabled={!fullResult}
-                  className="p-2 text-gray-400 hover:text-primary hover:bg-white/5 rounded-lg transition-colors"
-                  title="Download"
-                >
-                  <Download size={18} />
                 </button>
               </div>
             </div>
-            
-            <div className="p-6 flex-grow overflow-y-auto">
-              {displayedResult ? (
-                <RichTextRenderer content={displayedResult} />
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center text-gray-500">
-                  <div className="p-4 bg-navy-700/50 rounded-full mb-4">
-                    <PenTool size={32} className="opacity-40" />
-                  </div>
-                  <p>Your generated content will appear here.</p>
+            <div className="p-8 flex-grow overflow-y-auto whitespace-pre-wrap text-gray-300 leading-relaxed font-sans">
+              {displayedResult || (
+                <div className="h-full flex flex-col items-center justify-center text-gray-700">
+                  <p className="text-sm font-medium">Ready for your input...</p>
                 </div>
               )}
             </div>

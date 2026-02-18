@@ -11,35 +11,38 @@ const ToolCard: React.FC<ToolCardProps> = ({ tool, onClick }) => {
   return (
     <div 
       onClick={onClick}
-      className="group relative bg-navy-800 rounded-2xl p-6 border border-white/5 shadow-lg hover:shadow-primary/10 hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden"
+      className="group relative bg-navy-800/50 rounded-2xl p-6 border border-white/5 hover:border-primary/30 hover:bg-navy-700/50 transition-all duration-300 cursor-pointer flex flex-col h-full overflow-hidden"
     >
-      <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-        <ArrowUpRight size={20} className="text-gray-400" />
-      </div>
+      {/* Glow Effect */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[80px] group-hover:bg-primary/10 transition-all" />
 
-      <div className="mb-4 inline-flex items-center justify-center w-12 h-12 rounded-xl bg-navy-700 text-primary group-hover:bg-primary group-hover:text-navy-900 transition-colors duration-300 shadow-inner">
-        <tool.icon size={24} />
-      </div>
-      
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h3 className="font-heading font-bold text-lg text-white group-hover:text-primary transition-colors">
-            {tool.name}
-          </h3>
+      <div className="flex items-start justify-between mb-8">
+        <div className="p-3.5 rounded-xl bg-navy-900/80 border border-white/5 text-primary group-hover:scale-110 group-hover:border-primary/20 transition-all duration-300">
+          <tool.icon size={22} />
+        </div>
+        <div className="flex items-center gap-2">
           {tool.isNew && (
-            <span className="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold uppercase tracking-wide border border-primary/20">
+            <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-bold uppercase tracking-[1px] border border-primary/20">
               New
             </span>
           )}
+          <div className="p-1.5 rounded-lg text-gray-700 group-hover:text-primary transition-colors">
+            <ArrowUpRight size={18} />
+          </div>
         </div>
-        
-        <p className="text-sm text-gray-400 leading-relaxed line-clamp-2">
+      </div>
+      
+      <div className="flex-1">
+        <h3 className="font-heading font-bold text-lg text-gray-100 group-hover:text-white transition-colors mb-3">
+          {tool.name}
+        </h3>
+        <p className="text-sm text-gray-500 leading-relaxed line-clamp-2">
           {tool.description}
         </p>
       </div>
 
-      <div className="mt-4 flex items-center text-xs font-medium text-gray-500">
-        <span className="bg-navy-900/50 px-2 py-1 rounded-md border border-white/5">
+      <div className="mt-8 pt-6 border-t border-white/5">
+        <span className="text-[10px] uppercase font-bold tracking-[2px] text-gray-600 group-hover:text-gray-400 transition-colors">
           {tool.category}
         </span>
       </div>

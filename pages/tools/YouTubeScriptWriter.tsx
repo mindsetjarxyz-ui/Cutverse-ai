@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { generateText } from '../../services/geminiService';
-import { FileText, RefreshCw, Copy, Check, Download } from 'lucide-react';
+import { generateText } from '../../services/aiService';
+import { FileText, RefreshCw, Copy, Check, ArrowLeft } from 'lucide-react';
 import RichTextRenderer from '../../components/RichTextRenderer';
 
 const YouTubeScriptWriter: React.FC = () => {
@@ -11,24 +11,18 @@ const YouTubeScriptWriter: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const typeIntervalRef = useRef<number | null>(null);
 
-  // Typewriter effect
   useEffect(() => {
-    if (!result) {
-      setDisplayedResult('');
-      return;
-    }
+    if (!result) { setDisplayedResult(''); return; }
     if (typeIntervalRef.current) window.clearInterval(typeIntervalRef.current);
     let currentIndex = 0;
     setDisplayedResult('');
     typeIntervalRef.current = window.setInterval(() => {
-      const chunkSize = 15; 
+      const chunkSize = 25; 
       const nextIndex = Math.min(currentIndex + chunkSize, result.length);
       setDisplayedResult(result.substring(0, nextIndex));
       currentIndex = nextIndex;
-      if (currentIndex >= result.length) {
-        if (typeIntervalRef.current) window.clearInterval(typeIntervalRef.current);
-      }
-    }, 5); 
+      if (currentIndex >= result.length) { if (typeIntervalRef.current) window.clearInterval(typeIntervalRef.current); }
+    }, 10); 
     return () => { if (typeIntervalRef.current) window.clearInterval(typeIntervalRef.current); };
   }, [result]);
 
@@ -37,58 +31,40 @@ const YouTubeScriptWriter: React.FC = () => {
     setLoading(true);
     setResult('');
     try {
-      const prompt = `Write a complete, engaging YouTube video script for a video about: "${topic}". 
-      Structure:
-      1. **Hook (0-30s)**: Grab attention immediately.
-      2. **Intro**: Briefly state what the video is about.
-      3. **Content Body**: Break down into 3-5 key sections/steps. Use ## for main section titles.
-      4. **Engagement**: Remind to like/subscribe in a natural way.
-      5. **Conclusion & CTA**: Summary and what to watch next.
-      Tone: Energetic, conversational, and audience-focused. Use **bold** for emphasis.`;
-      
-      const text = await generateText(prompt, "You are a professional YouTube script writer.");
+      const prompt = `Write a complete YouTube script for: "${topic}". Use plain text headers without markdown symbols like # or *.`;
+      const text = await generateText(prompt, "Professional YouTube writer.");
       setResult(text);
-    } catch (e) {
-      alert("Error generating script.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDownload = () => {
-    if (!result) return;
-    const blob = new Blob([result], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `youtube-script-${Date.now()}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    } catch (e) { alert("Error generating script."); } finally { setLoading(false); }
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto px-4">
+      <button 
+        onClick={() => window.location.hash = '#/'} 
+        className="flex items-center text-xs font-bold text-gray-500 hover:text-white mb-8 transition-colors"
+      >
+        <ArrowLeft size={16} className="mr-2" /> 
+        Back to Tools
+      </button>
+
       <div className="mb-8">
         <h1 className="text-3xl font-heading font-bold text-white mb-2">YouTube Script Writer</h1>
-        <p className="text-gray-400">Generate full video scripts with hooks, content, and calls to action.</p>
+        <p className="text-gray-400">Generate full video scripts with fast typewriter animation.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1">
-          <div className="bg-navy-800 p-6 rounded-2xl border border-white/5 shadow-lg">
-            <label className="block text-sm font-medium text-gray-300 mb-2">Video Topic / Title</label>
+          <div className="bg-navy-800 p-6 rounded-2xl border border-white/5 shadow-xl">
             <textarea
-              className="w-full rounded-xl border-white/10 border p-3 text-sm focus:ring-primary focus:border-primary min-h-[150px] bg-navy-900 text-gray-200 placeholder-gray-600 mb-4"
-              placeholder="e.g. How to start a coding channel in 2025..."
+              className="w-full rounded-xl border-white/10 border p-4 text-sm bg-navy-900 text-gray-200 min-h-[150px] placeholder-gray-600 mb-4 focus:outline-none focus:border-primary/40 transition-all"
+              placeholder="What is your video about?"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
             ></textarea>
             <button
               onClick={handleGenerate}
               disabled={loading || !topic}
-              className="w-full py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-2"
+              className="w-full py-4 bg-red-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-500 transition-all shadow-lg shadow-red-900/20"
             >
               {loading ? <RefreshCw className="animate-spin" size={20} /> : <FileText size={20} />}
               {loading ? 'Writing...' : 'Generate Script'}
@@ -97,33 +73,22 @@ const YouTubeScriptWriter: React.FC = () => {
         </div>
 
         <div className="lg:col-span-2">
-          <div className="bg-navy-800 rounded-2xl border border-white/5 shadow-lg min-h-[500px] flex flex-col h-full">
-            <div className="border-b border-white/5 p-4 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-300">Generated Script</h3>
+          <div className="bg-navy-800 rounded-2xl border border-white/5 min-h-[500px] flex flex-col h-full shadow-xl">
+            <div className="border-b border-white/5 p-4 flex items-center justify-between bg-navy-800/50">
+              <h3 className="text-xs font-bold text-gray-400">Generated Script</h3>
               <div className="flex gap-2">
-                <button 
-                  onClick={() => { navigator.clipboard.writeText(result); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-                  disabled={!result}
-                  className="p-2 text-gray-400 hover:text-white bg-navy-900 rounded-lg transition-colors border border-white/5"
-                >
+                <button onClick={() => { navigator.clipboard.writeText(result); setCopied(true); setTimeout(() => setCopied(false), 2000); }} disabled={!result} className="p-2 text-gray-500 hover:text-white">
                   {copied ? <Check size={18} /> : <Copy size={18} />}
-                </button>
-                <button 
-                  onClick={handleDownload}
-                  disabled={!result}
-                  className="p-2 text-gray-400 hover:text-white bg-navy-900 rounded-lg transition-colors border border-white/5"
-                >
-                  <Download size={18} />
                 </button>
               </div>
             </div>
-            <div className="p-6 flex-grow overflow-y-auto">
+            <div className="p-8 flex-grow overflow-y-auto whitespace-pre-wrap text-gray-300 leading-relaxed font-sans">
               {displayedResult ? (
-                <RichTextRenderer content={displayedResult} />
+                displayedResult
               ) : (
-                <div className="h-full flex flex-col items-center justify-center text-gray-500">
+                <div className="h-full flex flex-col items-center justify-center text-gray-700">
                   <FileText size={32} className="opacity-20 mb-4" />
-                  <p>Your script will appear here</p>
+                  <p className="text-sm font-medium">Your script will appear here</p>
                 </div>
               )}
             </div>

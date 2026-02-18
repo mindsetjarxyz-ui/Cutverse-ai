@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Menu, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, Menu } from 'lucide-react';
 import { TOOLS } from '../constants';
 import { Tool } from '../types';
 
@@ -12,91 +12,88 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick, onNavigate }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Tool[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsSearching(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (query.trim().length > 0) {
-      setIsSearching(true);
       const filtered = TOOLS.filter(t => 
         t.name.toLowerCase().includes(query.toLowerCase()) ||
-        t.description.toLowerCase().includes(query.toLowerCase())
-      );
+        t.category.toLowerCase().includes(query.toLowerCase())
+      ).slice(0, 6);
       setResults(filtered);
+      setIsSearching(true);
     } else {
       setIsSearching(false);
-      setResults([]);
     }
   }, [query]);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 h-16 bg-navy-900/90 backdrop-blur-md border-b border-white/5 z-40 flex items-center px-4 lg:px-8 justify-between gap-4">
-      {/* Left: Logo & Menu */}
-      <div className="flex items-center space-x-4 shrink-0">
-        <button 
-          onClick={onMenuClick}
-          className="lg:hidden p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-        >
-          <Menu size={20} />
-        </button>
-        <div 
-          className="flex items-center space-x-2 cursor-pointer group" 
-          onClick={() => onNavigate('/')}
-        >
-          <div className="bg-primary p-1.5 rounded-lg shadow-[0_0_15px_rgba(6,182,212,0.5)] group-hover:shadow-[0_0_25px_rgba(6,182,212,0.7)] transition-shadow">
-             <Sparkles size={18} className="text-navy-900" />
-          </div>
-          <span className="font-heading font-bold text-xl text-white tracking-tight hidden sm:inline">
-            Cutverse<span className="text-primary">Ai</span>
-          </span>
-        </div>
-      </div>
+    <nav className="fixed top-0 left-0 right-0 h-20 bg-navy-900/80 backdrop-blur-xl border-b border-white/5 z-40 flex items-center px-6 lg:pl-[280px] justify-between">
+      {/* Mobile Menu Trigger */}
+      <button 
+        onClick={onMenuClick}
+        className="lg:hidden p-2 text-gray-400 hover:text-white"
+      >
+        <Menu size={20} />
+      </button>
 
-      {/* Center: Search */}
-      <div className="flex-1 max-w-xl mx-auto relative hidden md:block">
-        <div className="relative group">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={16} className="text-gray-500 group-focus-within:text-primary transition-colors" />
+      {/* Main Universal Search */}
+      <div className="flex-1 max-w-2xl mx-auto px-4 relative" ref={searchRef}>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-gray-500">
+            <Search size={16} />
           </div>
           <input
             type="text"
-            className="block w-full pl-10 pr-3 py-2.5 border border-white/10 rounded-full leading-5 bg-navy-800/50 text-gray-200 placeholder-gray-500 focus:outline-none focus:bg-navy-800 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all text-sm"
-            placeholder="Search tools..."
+            className="w-full bg-navy-800/40 border border-white/10 rounded-full py-2.5 pl-11 pr-4 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-primary/40 focus:ring-1 focus:ring-primary/10 transition-all"
+            placeholder="Search tools, templates, models..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
 
-        {/* Search Dropdown */}
         {isSearching && (
-          <div className="absolute top-full left-0 w-full mt-2 bg-navy-800 rounded-xl shadow-2xl border border-white/10 overflow-hidden py-2 max-h-96 overflow-y-auto z-50">
-            {results.length > 0 ? (
-              results.map(tool => (
+          <div className="absolute top-full left-0 right-0 mt-3 mx-4 bg-navy-800 rounded-2xl shadow-2xl border border-white/10 overflow-hidden animate-in fade-in slide-in-from-top-1">
+            <div className="p-2">
+              {results.map(tool => (
                 <div 
                   key={tool.id}
                   onClick={() => {
                     onNavigate(tool.path);
                     setQuery('');
+                    setIsSearching(false);
                   }}
-                  className="px-4 py-3 hover:bg-white/5 cursor-pointer flex items-center space-x-3 group"
+                  className="px-4 py-3 hover:bg-white/5 rounded-xl cursor-pointer flex items-center space-x-3 group"
                 >
-                  <div className="p-2 bg-navy-700 text-primary rounded-lg group-hover:bg-primary group-hover:text-navy-900 transition-colors">
-                    <tool.icon size={18} />
+                  <div className="p-2 bg-navy-900 text-primary rounded-lg group-hover:bg-primary group-hover:text-navy-950 transition-colors">
+                    <tool.icon size={16} />
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold text-gray-200">{tool.name}</h4>
-                    <p className="text-xs text-gray-500 truncate">{tool.description}</p>
+                    <h4 className="text-xs font-bold text-gray-100">{tool.name}</h4>
+                    <span className="text-[10px] text-gray-500">{tool.category}</span>
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="px-4 py-3 text-sm text-gray-500 text-center">No tools found.</div>
-            )}
+              ))}
+              {results.length === 0 && (
+                <div className="p-8 text-center text-gray-500 text-xs">No matching tools</div>
+              )}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Right: Actions (Empty for now as login is removed) */}
-      <div className="shrink-0 flex items-center gap-3">
-        {/* Placeholder for future actions */}
+      <div className="hidden md:block w-48 text-right">
+        {/* Placeholder for future user/balance info */}
       </div>
     </nav>
   );
