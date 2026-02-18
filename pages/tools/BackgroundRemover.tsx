@@ -82,67 +82,40 @@ const BackgroundRemover: React.FC = () => {
         const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imgData.data;
 
-        // Draw mask to temp canvas to resize it to match original dimensions
+        // Draw mask image stretched to fit original dimensions
         const maskCanvas = document.createElement('canvas');
         maskCanvas.width = canvas.width;
         maskCanvas.height = canvas.height;
         const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
         if (!maskCtx) throw new Error("No Mask Context");
         
-        // Draw mask image stretched to fit original dimensions
+        // Draw mask image
         maskCtx.drawImage(maskImg, 0, 0, canvas.width, canvas.height);
         const maskData = maskCtx.getImageData(0, 0, canvas.width, canvas.height).data;
 
-        // --- IMPROVED MASK PROCESSING ---
-        // Apply Erosion (Morphological Operation) to tighten the mask
-        // This removes the "halo" of background pixels around the subject
+        // --- IMPROVED PROCESSING FOR FINE DETAILS ---
+        // We now rely on the model (Gemini 3 Pro) to provide a high-quality grayscale matte.
+        // We map the mask's brightness directly to the alpha channel, with minor levels adjustment
+        // to ensure deep blacks are transparent and bright whites are opaque, while preserving 
+        // the gray values that represent hair, glass, or motion blur.
         
-        const width = canvas.width;
-        const height = canvas.height;
-        const erodedMask = new Uint8ClampedArray(width * height);
-        
-        // Simple cross-kernel erosion (Min of self, up, down, left, right)
-        // We operate on the Red channel of the mask (since it's B&W, R=G=B)
-        for (let y = 0; y < height; y++) {
-          for (let x = 0; x < width; x++) {
-             const idx = (y * width + x) * 4;
-             
-             // If strictly inside bounds
-             if (x > 0 && x < width - 1 && y > 0 && y < height - 1) {
-                 const center = maskData[idx]; // Red
-                 const left = maskData[(y * width + (x - 1)) * 4];
-                 const right = maskData[(y * width + (x + 1)) * 4];
-                 const up = maskData[((y - 1) * width + x) * 4];
-                 const down = maskData[((y + 1) * width + x) * 4];
-                 
-                 // Erode: Take the darkest pixel in the neighborhood
-                 erodedMask[y * width + x] = Math.min(center, left, right, up, down);
-             } else {
-                 // Edge pixels: keep original
-                 erodedMask[y * width + x] = maskData[idx];
-             }
-          }
-        }
-
-        // Apply Alpha Mask using the eroded mask
         for (let i = 0; i < data.length; i += 4) {
-            // Get value from eroded mask array
-            // Note: erodedMask is 1 byte per pixel, data is 4 bytes per pixel
-            const pixelIndex = i / 4;
-            const maskVal = erodedMask[pixelIndex];
+            // Get value from mask (Red channel)
+            let maskVal = maskData[i]; 
             
-            // Levels Adjustment for sharp cutout
-            // Threshold: Cut off anything below 50 (remove dark grey noise)
-            // Solidify anything above 200 (ensure subject is opaque)
-            let alpha;
-            if (maskVal < 50) {
-              alpha = 0; // Transparent
-            } else if (maskVal > 200) {
-              alpha = 255; // Opaque
+            // Levels Adjustment
+            // Clip noise at the bottom (0-15 becomes 0)
+            // Clip saturation at the top (245-255 becomes 255)
+            // Linearly interpolate in between to keep soft edges
+            
+            let alpha = 0;
+            if (maskVal < 15) {
+                alpha = 0;
+            } else if (maskVal > 245) {
+                alpha = 255;
             } else {
-              // Smooth transition for the edges (Anti-aliasing)
-              // Map 50..200 to 0..255
-              alpha = (maskVal - 50) * (255 / (200 - 50));
+                // Map 15..245 to 0..255
+                alpha = (maskVal - 15) * (255 / (245 - 15));
             }
             
             data[i + 3] = Math.min(255, Math.max(0, Math.floor(alpha)));
@@ -164,7 +137,7 @@ const BackgroundRemover: React.FC = () => {
     <div className="max-w-5xl mx-auto pb-10">
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-heading font-bold text-white mb-2">Background Remover</h1>
-        <p className="text-gray-400">Instantly isolate subjects using AI masking technology.</p>
+        <p className="text-gray-400">Instantly isolate subjects using advanced AI masking.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">

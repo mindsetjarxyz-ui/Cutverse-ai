@@ -70,6 +70,15 @@ export const TOOLS: Tool[] = [
 
   // --- STUDENT AI TOOLS ---
   {
+    id: 'student-application',
+    name: 'Application Writer',
+    description: 'Write formal applications for school, college, or jobs.',
+    category: ToolCategory.STUDENT,
+    icon: FileText,
+    path: '/tools/student/application',
+    isNew: true
+  },
+  {
     id: 'student-essay',
     name: 'Essay Writer',
     description: 'Generate academic essays with proper introduction and conclusion.',

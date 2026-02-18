@@ -145,11 +145,11 @@ export const generateSegmentationMask = async (
           data: imageBase64
         }
       },
-      { text: "Create a pure black and white silhouette mask of the main subject in this image. The subject must be SOLID WHITE (#FFFFFF). The background must be SOLID BLACK (#000000). Ensure clean, sharp edges. No gray areas, no noise. Just the silhouette." }
+      { text: "Create a high-precision grayscale alpha matte for background removal. The main subject should be white (#FFFFFF) and the background black (#000000). Crucially, preserve fine details like loose hair strands, fur, and semi-transparent edges using gray values. Ensure the mask aligns perfectly with the subject boundaries." }
     ];
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: 'gemini-3-pro-image-preview', // Upgraded to Pro for finer detail
       contents: { parts },
       config: {
         imageConfig: {

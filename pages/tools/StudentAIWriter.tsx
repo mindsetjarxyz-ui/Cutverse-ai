@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { generateText } from '../../services/geminiService';
-import { RefreshCw, BookOpen, Copy, Check, Download, GraduationCap, AlignLeft, Sparkles, MessageSquare, Feather, PenTool } from 'lucide-react';
+import { RefreshCw, BookOpen, Copy, Check, Download, GraduationCap, AlignLeft, Sparkles, MessageSquare, Feather, PenTool, FileText, ArrowLeft, Edit2, Save } from 'lucide-react';
 import RichTextRenderer from '../../components/RichTextRenderer';
 
 interface StudentAIWriterProps {
@@ -13,23 +13,37 @@ const StudentAIWriter: React.FC<StudentAIWriterProps> = ({ toolType, toolName })
   const [wordCount, setWordCount] = useState('150');
   const [customWordCount, setCustomWordCount] = useState('');
   const [classLevel, setClassLevel] = useState('Class 10');
+  const [appLevel, setAppLevel] = useState('Academic');
   
   const [result, setResult] = useState('');
   const [displayedResult, setDisplayedResult] = useState('');
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [shouldAnimate, setShouldAnimate] = useState(false);
+
   const typeIntervalRef = useRef<number | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
+  // Tool Identifiers
   const isSummary = toolName === 'Summary Generator';
   const isGrammar = toolName === 'Grammar Improver';
+  const isDebate = toolName === 'Debate Writer';
+  const isLetter = toolName === 'Letter Writer';
+  const isSpeech = toolName === 'Speech Writer';
+  const isApplication = toolName === 'Application Writer';
+  const isParagraph = toolName === 'Paragraph Writer';
+  const isEssay = toolName === 'Essay Writer';
   const isTextInput = isSummary || isGrammar;
+
+  // Configuration for Visibility
+  const showClassLevel = !isSummary && !isGrammar && !isLetter && !isDebate && !isApplication;
+  const showWordCount = !isSummary && !isGrammar && !isLetter && !isDebate && !isSpeech && !isApplication;
+  const showAppLevel = isApplication;
 
   // Dynamic Theme Logic
   const getTheme = () => {
     const name = toolName.toLowerCase();
-    
-    // Creative Tools (Story, Composition) -> Purple/Pink
     if (name.includes('story') || name.includes('composition')) {
       return {
         gradient: 'from-purple-600 to-pink-500',
@@ -40,20 +54,16 @@ const StudentAIWriter: React.FC<StudentAIWriterProps> = ({ toolType, toolName })
         Icon: Feather
       };
     }
-    
-    // Formal/Speech Tools (Speech, Debate, Letter) -> Amber/Orange
-    if (name.includes('speech') || name.includes('debate') || name.includes('letter')) {
+    if (name.includes('speech') || name.includes('debate') || name.includes('letter') || name.includes('application')) {
       return {
         gradient: 'from-amber-600 to-orange-500',
         iconBg: 'bg-orange-500/20 text-orange-300 border-orange-500/20',
         focusRing: 'focus:border-orange-500 focus:ring-orange-500/50',
         buttonShadow: 'shadow-orange-500/20 hover:shadow-orange-500/40',
         textColor: 'text-orange-300',
-        Icon: MessageSquare
+        Icon: name.includes('application') ? FileText : MessageSquare
       };
     }
-    
-    // Utility Tools (Summary, Grammar) -> Emerald/Teal
     if (name.includes('summary') || name.includes('grammar')) {
       return {
         gradient: 'from-emerald-600 to-teal-500',
@@ -64,8 +74,6 @@ const StudentAIWriter: React.FC<StudentAIWriterProps> = ({ toolType, toolName })
         Icon: AlignLeft
       };
     }
-
-    // Default Academic Tools (Essay, Paragraph) -> Cyan/Blue
     return {
       gradient: 'from-cyan-600 to-blue-500',
       iconBg: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/20',
@@ -79,11 +87,16 @@ const StudentAIWriter: React.FC<StudentAIWriterProps> = ({ toolType, toolName })
   const theme = getTheme();
   const HeaderIcon = theme.Icon;
 
-  // Typewriter effect
   useEffect(() => {
     if (!result) {
       setDisplayedResult('');
       return;
+    }
+
+    // If not animating (e.g. editing or loaded from history), show full result immediately
+    if (!shouldAnimate) {
+        setDisplayedResult(result);
+        return;
     }
 
     if (resultsRef.current && !loading) {
@@ -103,19 +116,22 @@ const StudentAIWriter: React.FC<StudentAIWriterProps> = ({ toolType, toolName })
 
       if (currentIndex >= result.length) {
         if (typeIntervalRef.current) window.clearInterval(typeIntervalRef.current);
+        setShouldAnimate(false); // Animation done
       }
     }, 5);
 
     return () => {
       if (typeIntervalRef.current) window.clearInterval(typeIntervalRef.current);
     };
-  }, [result, loading]);
+  }, [result, loading, shouldAnimate]);
 
   const handleGenerate = async () => {
     if (!topic) return;
     setLoading(true);
+    setShouldAnimate(true);
     setResult('');
     setDisplayedResult('');
+    setIsEditing(false);
     
     try {
       let prompt = '';
@@ -124,46 +140,77 @@ const StudentAIWriter: React.FC<StudentAIWriterProps> = ({ toolType, toolName })
         prompt = `
           Role: You are an expert academic summarizer.
           Task: Create a concise, professional, and academic summary of the following text.
-          
-          Source Text:
-          """${topic}"""
-
+          Source Text: """${topic}"""
           Requirements:
-          1. Capture the main ideas and key points accurately.
-          2. Tone: Professional and Academic.
-          3. Style: Clear, coherent paragraph(s) or bullet points if appropriate for clarity.
-          4. Strictly avoid plagiarism.
-          5. Do not include meta-commentary like "Here is the summary".
+          1. Start with a main heading using markdown (# Summary).
+          2. Capture the main ideas and key points accurately.
+          3. Tone: Professional and Academic.
+          4. Style: Clear, coherent paragraph(s) or bullet points.
+          5. Strictly avoid plagiarism.
         `;
       } else if (isGrammar) {
         prompt = `
           Role: You are an expert academic editor.
-          Task: Correct the grammar, spelling, and punctuation of the text below. Improve sentence structure and flow to match a high-quality standard.
+          Task: Correct the grammar, spelling, and punctuation of the text below.
+          Text to Improve: """${topic}"""
+          Output: Start with a main heading (# Corrected Version), then provide ONLY the corrected version.
+        `;
+      } else if (isApplication) {
+        prompt = `
+          Role: You are an expert in writing formal applications.
+          Task: Write a ${appLevel} application based on the details below.
+          Details: "${topic}"
+          Requirements:
+          1. Start with a main heading using markdown (# Title of Application).
+          2. Tone: ${appLevel} (Formal, polite, and respectful).
+          3. Format: Standard formal application format (Subject line, Salutation, Body, Closing).
+          4. Content: Ensure all details provided in the topic are included.
+        `;
+      } else if (isParagraph) {
+        const finalWordCount = wordCount === 'Custom' ? customWordCount : wordCount.replace(' words', '');
+        prompt = `
+          Role: You are an expert academic AI tutor.
+          Task: Write a perfectly structured academic paragraph about "${topic}".
           
-          Text to Improve:
-          """${topic}"""
+          Requirements:
+          1. Start with a main heading using markdown (# ${topic}).
+          2. Target Level: ${classLevel}.
+          3. Tone: Formal and Academic.
+          4. Word Count: Approx ${finalWordCount} words.
+          5. Structure: Write a single, cohesive text block (or multiple paragraphs if length requires). Start with a topic sentence, follow with supporting details, and end with a concluding sentence.
+          6. Strictly avoid plagiarism.
+        `;
+      } else if (isEssay) {
+        const finalWordCount = wordCount === 'Custom' ? customWordCount : wordCount.replace(' words', '');
+        prompt = `
+          Role: You are an expert academic AI tutor.
+          Task: Write a comprehensive Academic Essay about "${topic}".
           
-          Output: Provide ONLY the corrected version of the text. No explanations unless necessary for clarity in a separate note.
+          Requirements:
+          1. Start with a main heading using markdown (# Title).
+          2. Structure the essay with clear markdown subheadings (##) for EACH paragraph or section (e.g., ## Introduction, ## [Key Argument 1], ## Conclusion).
+          3. Target Level: ${classLevel}.
+          4. Tone: Formal and Academic.
+          5. Word Count: Approx ${finalWordCount} words.
+          6. Style: Well-structured, formal.
+          7. Strictly avoid plagiarism.
+          Formatting: Use standard Markdown. Bold key terms.
         `;
       } else {
         const finalWordCount = wordCount === 'Custom' ? customWordCount : wordCount.replace(' words', '');
-        
         prompt = `
-          Role: You are an expert academic AI tutor designed to help students achieve top grades.
-          Task: Write a high-quality, professional ${toolType} about the topic "${topic}".
-          
+          Role: You are an expert academic AI tutor.
+          Task: Write a high-quality, professional ${toolType} about "${topic}".
           Requirements:
-          1. Target Academic Level: ${classLevel}. (CRITICAL: Adjust vocabulary, sentence complexity, and depth to match this level perfectly).
-          2. Tone: Professional and Academic.
-          3. Approximate Word Count: ${finalWordCount} words.
-          4. Style: Well-structured, formal, and neatly formatted.
-          
-          Formatting:
-          - Use standard Markdown.
-          - Use **bold** for key terms.
-          - Ensure proper structure (Introduction, Body Paragraphs, Conclusion) where applicable.
-          - Strictly avoid plagiarism.
-          - Do not include meta-commentary like "Here is your essay". Just provide the content.
+          1. Start with a main heading using markdown (# Title).
+          ${showClassLevel ? `2. Target Academic Level: ${classLevel}.` : ''}
+          3. Tone: Professional and Academic.
+          ${showWordCount ? `4. Approximate Word Count: ${finalWordCount} words.` : ''}
+          5. Style: Well-structured, formal.
+          ${isDebate ? '6. Provide strong arguments suitable for a debate.' : ''}
+          ${isSpeech ? '6. Write it as a spoken speech.' : ''}
+          ${isLetter ? '6. Use proper letter formatting.' : ''}
+          Formatting: Use standard Markdown. Bold key terms.
         `;
       }
       
@@ -177,7 +224,16 @@ const StudentAIWriter: React.FC<StudentAIWriterProps> = ({ toolType, toolName })
   };
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(result);
+    // Strip markdown symbols for clean copying
+    const plainText = result
+      .replace(/#{1,6}\s?/g, '') // Remove headers
+      .replace(/\*\*/g, '')      // Remove bold markers
+      .replace(/\*/g, '')        // Remove italic markers
+      .replace(/`/g, '')         // Remove code markers
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Remove links, keep text
+      .trim();
+
+    navigator.clipboard.writeText(plainText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -195,8 +251,24 @@ const StudentAIWriter: React.FC<StudentAIWriterProps> = ({ toolType, toolName })
     URL.revokeObjectURL(url);
   };
 
+  const getPlaceholder = () => {
+    if (isSummary) return "Paste the text you want to summarize...";
+    if (isGrammar) return "Paste text to correct...";
+    if (isApplication) return "Enter application details (e.g., Leave application for sister's wedding, School Name, Date, Reason)...";
+    if (isDebate) return "Enter debate motion (e.g., Social media is bad for youth)...";
+    return "e.g., Climate Change...";
+  };
+
   return (
     <div className="max-w-6xl mx-auto">
+      <button 
+        onClick={() => window.location.hash = '#/'} 
+        className="flex items-center text-gray-400 hover:text-white mb-6 transition-colors group"
+      >
+        <ArrowLeft size={20} className="mr-2 group-hover:-translate-x-1 transition-transform" /> 
+        Back to Tools
+      </button>
+
       <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
             <div className={`p-3 rounded-xl border ${theme.iconBg}`}>
@@ -206,10 +278,12 @@ const StudentAIWriter: React.FC<StudentAIWriterProps> = ({ toolType, toolName })
                 <h1 className="text-3xl font-heading font-bold text-white mb-1">{toolName}</h1>
                 <p className="text-gray-400">
                   {isSummary 
-                    ? 'Summarize any text instantly into professional academic notes.'
+                    ? 'Summarize any text instantly.'
                     : isGrammar
-                    ? 'Correct grammar and improve sentence flow instantly.'
-                    : 'Generate high-quality academic content tailored to your class level.'
+                    ? 'Correct grammar and improve sentence flow.'
+                    : isApplication
+                    ? 'Generate formal applications.'
+                    : 'Generate high-quality academic content.'
                   }
                 </p>
             </div>
@@ -220,20 +294,17 @@ const StudentAIWriter: React.FC<StudentAIWriterProps> = ({ toolType, toolName })
         {/* Input Section */}
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-navy-800 p-6 rounded-2xl border border-white/5 shadow-lg relative overflow-hidden">
-            {/* Subtle top accent */}
             <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${theme.gradient} opacity-50`}></div>
-            
             <div className="space-y-5 relative z-10">
               
-              {/* Topic / Content Input */}
               <div>
                 <label className={`block text-sm font-medium ${theme.textColor} mb-2`}>
-                  {isTextInput ? 'Paste Content Here' : 'Topic / Title'}
+                  {isTextInput ? 'Paste Content Here' : 'Topic / Title / Details'}
                 </label>
-                {isTextInput ? (
+                {isTextInput || isApplication ? (
                   <textarea 
-                    className={`w-full rounded-lg border-white/10 border p-3 text-sm bg-navy-900 text-gray-200 placeholder-gray-600 min-h-[200px] ${theme.focusRing}`}
-                    placeholder={isSummary ? "Paste the text you want to summarize..." : "Paste text to correct..."}
+                    className={`w-full rounded-lg border-white/10 border p-3 text-sm bg-navy-900 text-gray-200 placeholder-gray-600 min-h-[150px] ${theme.focusRing}`}
+                    placeholder={getPlaceholder()}
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
                   />
@@ -241,15 +312,14 @@ const StudentAIWriter: React.FC<StudentAIWriterProps> = ({ toolType, toolName })
                   <input 
                       type="text"
                       className={`w-full rounded-lg border-white/10 border p-3 text-sm bg-navy-900 text-gray-200 placeholder-gray-600 ${theme.focusRing}`}
-                      placeholder="e.g., Climate Change (in French)..."
+                      placeholder={getPlaceholder()}
                       value={topic}
                       onChange={(e) => setTopic(e.target.value)}
                   />
                 )}
               </div>
 
-              {/* Class Level - Hidden for Summary and Grammar */}
-              {!isSummary && !isGrammar && (
+              {showClassLevel && (
                 <div>
                   <label className="block text-xs font-medium text-gray-400 mb-1">Class Level</label>
                   <select 
@@ -267,8 +337,24 @@ const StudentAIWriter: React.FC<StudentAIWriterProps> = ({ toolType, toolName })
                 </div>
               )}
 
-              {/* Word Count - Hidden for Summary and Grammar */}
-              {!isSummary && !isGrammar && (
+              {showAppLevel && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-1">Application Type</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {['Academic', 'Professional'].map((level) => (
+                      <button
+                        key={level}
+                        onClick={() => setAppLevel(level)}
+                        className={`py-2 text-sm rounded-lg border transition-all ${appLevel === level ? `${theme.iconBg} font-bold` : 'border-white/10 bg-navy-900 text-gray-400'}`}
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {showWordCount && (
                 <div>
                   <label className="block text-xs font-medium text-gray-400 mb-1">Word Count</label>
                   <select 
@@ -290,7 +376,7 @@ const StudentAIWriter: React.FC<StudentAIWriterProps> = ({ toolType, toolName })
                 </div>
               )}
 
-              {!isSummary && !isGrammar && wordCount === 'Custom' && (
+              {showWordCount && wordCount === 'Custom' && (
                   <div>
                     <label className="block text-xs font-medium text-gray-400 mb-1">Enter Word Count</label>
                     <input 
@@ -309,7 +395,7 @@ const StudentAIWriter: React.FC<StudentAIWriterProps> = ({ toolType, toolName })
                 className={`w-full py-3 bg-gradient-to-r ${theme.gradient} text-white rounded-xl font-bold shadow-lg ${theme.buttonShadow} transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
               >
                 {loading ? <RefreshCw className="animate-spin" size={20} /> : <Sparkles size={20} />}
-                {loading ? (isSummary ? 'Summarizing...' : isGrammar ? 'Fixing...' : 'Writing...') : (isSummary ? 'Generate Summary' : isGrammar ? 'Fix Grammar' : 'Generate Content')}
+                {loading ? 'Working...' : 'Generate'}
               </button>
             </div>
           </div>
@@ -318,7 +404,6 @@ const StudentAIWriter: React.FC<StudentAIWriterProps> = ({ toolType, toolName })
         {/* Output Section */}
         <div className="lg:col-span-2" ref={resultsRef}>
           <div className="bg-navy-800 rounded-2xl border border-white/5 shadow-lg min-h-[600px] flex flex-col h-full relative overflow-hidden">
-             {/* Background Pattern */}
              <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
                   style={{ 
                     backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', 
@@ -329,9 +414,17 @@ const StudentAIWriter: React.FC<StudentAIWriterProps> = ({ toolType, toolName })
             <div className="border-b border-white/5 p-4 flex items-center justify-between relative z-10 bg-navy-800/80 backdrop-blur-sm">
               <h3 className={`font-semibold ${theme.textColor} flex items-center gap-2`}>
                 <HeaderIcon size={16} />
-                Generated Result
+                {isEditing ? 'Editing Result' : 'Generated Result'}
               </h3>
               <div className="flex gap-2">
+                <button
+                  onClick={() => setIsEditing(!isEditing)}
+                  disabled={!result}
+                  className={`p-2 rounded-lg transition-colors ${isEditing ? 'bg-primary text-navy-900' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                  title={isEditing ? "Save Changes" : "Edit Text"}
+                >
+                  {isEditing ? <Save size={18} /> : <Edit2 size={18} />}
+                </button>
                 <button 
                   onClick={copyToClipboard}
                   disabled={!result}
@@ -352,21 +445,25 @@ const StudentAIWriter: React.FC<StudentAIWriterProps> = ({ toolType, toolName })
             </div>
             
             <div className="p-8 flex-grow overflow-y-auto relative z-10">
-              {displayedResult ? (
+              {isEditing ? (
+                 <textarea
+                   value={result}
+                   onChange={(e) => {
+                     setResult(e.target.value);
+                     setDisplayedResult(e.target.value); // Sync so if they cancel/save it's there
+                   }}
+                   className="w-full h-full bg-transparent text-gray-200 font-mono text-base resize-none focus:outline-none leading-relaxed"
+                   spellCheck={false}
+                   placeholder="Edit your text here..."
+                 />
+              ) : displayedResult ? (
                 <RichTextRenderer content={displayedResult} className="text-lg leading-relaxed" />
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-gray-500">
                   <div className={`p-4 rounded-full mb-4 ${theme.iconBg} bg-opacity-10 border-none`}>
                     <PenTool size={32} className="opacity-50" />
                   </div>
-                  <p>
-                    {isSummary 
-                      ? 'Your summary will appear here.'
-                      : isGrammar 
-                      ? 'Corrected text will appear here.'
-                      : 'Your professional academic content will appear here.'
-                    }
-                  </p>
+                  <p>Result will appear here.</p>
                 </div>
               )}
             </div>

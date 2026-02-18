@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { generateText } from '../../services/geminiService';
-import { Copy, Download, RefreshCw, PenTool, Check } from 'lucide-react';
+import { Copy, Download, RefreshCw, PenTool, Check, ArrowLeft } from 'lucide-react';
 import RichTextRenderer from '../../components/RichTextRenderer';
 
 interface ContentWriterProps {
@@ -37,12 +37,10 @@ const ContentWriter: React.FC<ContentWriterProps> = ({
       return;
     }
 
-    // Scroll to results when generation starts/completes
     if (resultsRef.current && !loading) {
        resultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    // Clear any existing interval
     if (typeIntervalRef.current) window.clearInterval(typeIntervalRef.current);
 
     let currentIndex = 0;
@@ -72,7 +70,11 @@ const ContentWriter: React.FC<ContentWriterProps> = ({
     setDisplayedResult('');
     
     try {
-      const prompt = `Write a ${type} about "${topic}". The tone should be ${tone}. Use standard Markdown formatting: Use ## for main headings, ### for subheadings, **bold** for emphasis, and bullet points where appropriate. Keep it professional and well-structured.`;
+      const prompt = `Write a ${type} about "${topic}". The tone should be ${tone}. 
+      Requirements:
+      1. Start with a catchy main heading using markdown (# Title).
+      2. Use standard Markdown formatting (## for sections, **bold** for emphasis).
+      3. Keep it professional and well-structured.`;
       const text = await generateText(prompt, "You are an expert content writer.");
       setFullResult(text);
     } catch (e) {
@@ -83,7 +85,16 @@ const ContentWriter: React.FC<ContentWriterProps> = ({
   };
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(fullResult);
+    // Strip markdown symbols for clean copying
+    const plainText = fullResult
+      .replace(/#{1,6}\s?/g, '') // Remove headers
+      .replace(/\*\*/g, '')      // Remove bold markers
+      .replace(/\*/g, '')        // Remove italic markers
+      .replace(/`/g, '')         // Remove code markers
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Remove links, keep text
+      .trim();
+
+    navigator.clipboard.writeText(plainText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -103,6 +114,14 @@ const ContentWriter: React.FC<ContentWriterProps> = ({
 
   return (
     <div className="max-w-4xl mx-auto">
+      <button 
+        onClick={() => window.location.hash = '#/'} 
+        className="flex items-center text-gray-400 hover:text-white mb-6 transition-colors group"
+      >
+        <ArrowLeft size={20} className="mr-2 group-hover:-translate-x-1 transition-transform" /> 
+        Back to Tools
+      </button>
+
       <div className="mb-8">
         <h1 className="text-3xl font-heading font-bold text-white mb-2">{title}</h1>
         <p className="text-gray-400">Generate high-quality content optimized for your needs.</p>

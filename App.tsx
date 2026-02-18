@@ -66,6 +66,7 @@ const App: React.FC = () => {
     if (path.includes('/tools/student/grammar')) return <StudentAIWriter toolType="Corrected and Improved Text" toolName="Grammar Improver" />;
     if (path.includes('/tools/student/speech')) return <StudentAIWriter toolType="Speech" toolName="Speech Writer" />;
     if (path.includes('/tools/student/debate')) return <StudentAIWriter toolType="Debate Arguments" toolName="Debate Writer" />;
+    if (path.includes('/tools/student/application')) return <StudentAIWriter toolType="Application" toolName="Application Writer" />;
 
     // Writing Tools
     if (path.includes('/tools/writing/writer')) return <ContentWriter title="AI Content Writer" />;

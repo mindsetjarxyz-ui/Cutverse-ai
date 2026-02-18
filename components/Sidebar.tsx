@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CATEGORIES, TOOLS } from '../constants';
 import { ToolCategory } from '../types';
-import { Sparkles, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 interface SidebarProps {
   activeCategory: ToolCategory;
@@ -102,13 +102,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <span>{cat.id}</span>
               </button>
             ))}
-          </div>
-        </div>
-
-        <div className="mt-auto px-2">
-          <div className="p-4 bg-gradient-to-br from-navy-800 to-navy-700 rounded-xl border border-white/5">
-            <Sparkles className="w-6 h-6 text-primary mx-auto mb-2" />
-            <p className="text-xs text-gray-300 font-medium text-center">Free Unlimited Usage</p>
           </div>
         </div>
       </div>
