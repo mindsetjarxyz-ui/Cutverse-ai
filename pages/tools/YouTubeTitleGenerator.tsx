@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { generateText } from '../../services/geminiService';
 import { Type, RefreshCw, Copy, Check } from 'lucide-react';
+import RichTextRenderer from '../../components/RichTextRenderer';
 
 const YouTubeTitleGenerator: React.FC = () => {
   const [topic, setTopic] = useState('');
@@ -19,7 +20,7 @@ const YouTubeTitleGenerator: React.FC = () => {
     let currentIndex = 0;
     setDisplayedResult('');
     typeIntervalRef.current = window.setInterval(() => {
-      const chunkSize = 5; 
+      const chunkSize = 15; 
       const nextIndex = Math.min(currentIndex + chunkSize, result.length);
       setDisplayedResult(result.substring(0, nextIndex));
       currentIndex = nextIndex;
@@ -35,7 +36,7 @@ const YouTubeTitleGenerator: React.FC = () => {
     setLoading(true);
     setResult('');
     try {
-      const prompt = `Generate exactly 10 clickbait-style, highly engaging, and viral YouTube titles for a video about: "${topic}". Make them catchy but relevant. Format them as a numbered list.`;
+      const prompt = `Generate exactly 10 clickbait-style, highly engaging, and viral YouTube titles for a video about: "${topic}". Make them catchy but relevant. Format as a numbered list. Use **bold** for the most important words in each title to make them stand out.`;
       const text = await generateText(prompt, "You are a viral YouTube title expert.");
       setResult(text);
     } catch (e) {
@@ -87,9 +88,7 @@ const YouTubeTitleGenerator: React.FC = () => {
             </div>
             <div className="p-6 flex-grow overflow-y-auto">
               {displayedResult ? (
-                <div className="prose prose-invert prose-sm max-w-none text-gray-300 whitespace-pre-line">
-                  {displayedResult}
-                </div>
+                <RichTextRenderer content={displayedResult} />
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-gray-500">
                   <Type size={32} className="opacity-20 mb-4" />

@@ -49,74 +49,115 @@ const BackgroundRemover: React.FC = () => {
     setLoading(true);
     setResult(null);
 
-    try {
-      const base64 = filePreview.split(',')[1];
-      const mime = file.type;
-      
-      // Step 1: Generate Mask
-      const maskDataUrl = await generateSegmentationMask(base64, mime, aspectRatio);
-      
-      if (!maskDataUrl) {
-          throw new Error("Failed to generate mask");
+    // Give UI a moment to show loading state before heavy processing
+    setTimeout(async () => {
+      try {
+        const base64 = filePreview.split(',')[1];
+        const mime = file.type;
+        
+        // Step 1: Generate Mask
+        const maskDataUrl = await generateSegmentationMask(base64, mime, aspectRatio);
+        
+        if (!maskDataUrl) {
+            throw new Error("Failed to generate mask");
+        }
+
+        // Step 2: Composite Mask with Original
+        const originalImg = new Image();
+        originalImg.src = filePreview;
+        await new Promise(r => { originalImg.onload = r; });
+
+        const maskImg = new Image();
+        maskImg.src = maskDataUrl;
+        await new Promise(r => { maskImg.onload = r; });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = originalImg.width;
+        canvas.height = originalImg.height;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) throw new Error("No Canvas Context");
+
+        // Draw original
+        ctx.drawImage(originalImg, 0, 0);
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imgData.data;
+
+        // Draw mask to temp canvas to resize it to match original dimensions
+        const maskCanvas = document.createElement('canvas');
+        maskCanvas.width = canvas.width;
+        maskCanvas.height = canvas.height;
+        const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
+        if (!maskCtx) throw new Error("No Mask Context");
+        
+        // Draw mask image stretched to fit original dimensions
+        maskCtx.drawImage(maskImg, 0, 0, canvas.width, canvas.height);
+        const maskData = maskCtx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+        // --- IMPROVED MASK PROCESSING ---
+        // Apply Erosion (Morphological Operation) to tighten the mask
+        // This removes the "halo" of background pixels around the subject
+        
+        const width = canvas.width;
+        const height = canvas.height;
+        const erodedMask = new Uint8ClampedArray(width * height);
+        
+        // Simple cross-kernel erosion (Min of self, up, down, left, right)
+        // We operate on the Red channel of the mask (since it's B&W, R=G=B)
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+             const idx = (y * width + x) * 4;
+             
+             // If strictly inside bounds
+             if (x > 0 && x < width - 1 && y > 0 && y < height - 1) {
+                 const center = maskData[idx]; // Red
+                 const left = maskData[(y * width + (x - 1)) * 4];
+                 const right = maskData[(y * width + (x + 1)) * 4];
+                 const up = maskData[((y - 1) * width + x) * 4];
+                 const down = maskData[((y + 1) * width + x) * 4];
+                 
+                 // Erode: Take the darkest pixel in the neighborhood
+                 erodedMask[y * width + x] = Math.min(center, left, right, up, down);
+             } else {
+                 // Edge pixels: keep original
+                 erodedMask[y * width + x] = maskData[idx];
+             }
+          }
+        }
+
+        // Apply Alpha Mask using the eroded mask
+        for (let i = 0; i < data.length; i += 4) {
+            // Get value from eroded mask array
+            // Note: erodedMask is 1 byte per pixel, data is 4 bytes per pixel
+            const pixelIndex = i / 4;
+            const maskVal = erodedMask[pixelIndex];
+            
+            // Levels Adjustment for sharp cutout
+            // Threshold: Cut off anything below 50 (remove dark grey noise)
+            // Solidify anything above 200 (ensure subject is opaque)
+            let alpha;
+            if (maskVal < 50) {
+              alpha = 0; // Transparent
+            } else if (maskVal > 200) {
+              alpha = 255; // Opaque
+            } else {
+              // Smooth transition for the edges (Anti-aliasing)
+              // Map 50..200 to 0..255
+              alpha = (maskVal - 50) * (255 / (200 - 50));
+            }
+            
+            data[i + 3] = Math.min(255, Math.max(0, Math.floor(alpha)));
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+        setResult(canvas.toDataURL('image/png'));
+
+      } catch (e) {
+        console.error(e);
+        alert("Processing failed. Please try a simpler image.");
+      } finally {
+        setLoading(false);
       }
-
-      // Step 2: Composite Mask with Original
-      const originalImg = new Image();
-      originalImg.src = filePreview;
-      await new Promise(r => { originalImg.onload = r; });
-
-      const maskImg = new Image();
-      maskImg.src = maskDataUrl;
-      await new Promise(r => { maskImg.onload = r; });
-
-      const canvas = document.createElement('canvas');
-      canvas.width = originalImg.width;
-      canvas.height = originalImg.height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error("No Canvas Context");
-
-      // Draw original
-      ctx.drawImage(originalImg, 0, 0);
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imgData.data;
-
-      // Draw mask to temp canvas to resize it to match original perfectly
-      const maskCanvas = document.createElement('canvas');
-      maskCanvas.width = canvas.width;
-      maskCanvas.height = canvas.height;
-      const maskCtx = maskCanvas.getContext('2d');
-      if (!maskCtx) throw new Error("No Mask Context");
-      
-      // Draw mask image stretched to fit original dimensions
-      maskCtx.drawImage(maskImg, 0, 0, canvas.width, canvas.height);
-      const maskData = maskCtx.getImageData(0, 0, canvas.width, canvas.height).data;
-
-      // Apply Alpha Mask based on brightness of the mask
-      // White in mask = Opaque in result
-      // Black in mask = Transparent in result
-      for (let i = 0; i < data.length; i += 4) {
-          // Use Red channel as brightness
-          const brightness = maskData[i]; 
-          
-          // Apply thresholding for sharper edges, or use smooth interpolation
-          // Simple Threshold:
-          // const alpha = brightness > 128 ? 255 : 0;
-          
-          // Smooth (better for hair etc, assuming AI mask has gradients)
-          // But AI mask is usually binary-ish.
-          
-          data[i + 3] = brightness;
-      }
-
-      ctx.putImageData(imgData, 0, 0);
-      setResult(canvas.toDataURL('image/png'));
-
-    } catch (e) {
-      console.error(e);
-      alert("Processing failed. Please try a simpler image.");
-    } finally {
-      setLoading(false);
-    }
+    }, 100);
   };
 
   return (
@@ -193,8 +234,9 @@ const BackgroundRemover: React.FC = () => {
                    <div className="text-center p-6">
                      <div className="w-16 h-16 border-4 border-navy-700 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
                      <p className="text-sm font-medium text-gray-400">
-                       Generating mask...
+                       Creating precise mask...
                      </p>
+                     <p className="text-xs text-gray-500 mt-2">Refining edges & details</p>
                    </div>
                 ) : (
                   <>

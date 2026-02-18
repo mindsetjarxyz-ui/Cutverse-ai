@@ -6,6 +6,7 @@ export enum ToolCategory {
   WRITING = 'AI Writing',
   SOCIAL = 'Social Media',
   UTILITY = 'Utility',
+  STUDENT = 'Student AI',
 }
 
 export interface Tool {

@@ -12,8 +12,10 @@ import YouTubeTagGenerator from './pages/tools/YouTubeTagGenerator';
 import PhotoEnhancer from './pages/tools/PhotoEnhancer';
 import BackgroundRemover from './pages/tools/BackgroundRemover';
 import ObjectRemover from './pages/tools/ObjectRemover';
+import StudentAIWriter from './pages/tools/StudentAIWriter';
 import { Tool, ToolCategory } from './types';
 import { TOOLS } from './constants';
+import { MessageSquare } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<ToolCategory>(ToolCategory.ALL);
@@ -54,6 +56,17 @@ const App: React.FC = () => {
       );
     }
     
+    // Student AI Tools
+    if (path.includes('/tools/student/paragraph')) return <StudentAIWriter toolType="Paragraph" toolName="Paragraph Writer" />;
+    if (path.includes('/tools/student/essay')) return <StudentAIWriter toolType="Academic Essay" toolName="Essay Writer" />;
+    if (path.includes('/tools/student/composition')) return <StudentAIWriter toolType="Creative Composition" toolName="Composition Writer" />;
+    if (path.includes('/tools/student/letter')) return <StudentAIWriter toolType="Letter" toolName="Letter Writer" />;
+    if (path.includes('/tools/student/story')) return <StudentAIWriter toolType="Short Story" toolName="Story Writer" />;
+    if (path.includes('/tools/student/summary')) return <StudentAIWriter toolType="Summary" toolName="Summary Generator" />;
+    if (path.includes('/tools/student/grammar')) return <StudentAIWriter toolType="Corrected and Improved Text" toolName="Grammar Improver" />;
+    if (path.includes('/tools/student/speech')) return <StudentAIWriter toolType="Speech" toolName="Speech Writer" />;
+    if (path.includes('/tools/student/debate')) return <StudentAIWriter toolType="Debate Arguments" toolName="Debate Writer" />;
+
     // Writing Tools
     if (path.includes('/tools/writing/writer')) return <ContentWriter title="AI Content Writer" />;
     if (path.includes('/tools/writing/blog')) return <ContentWriter initialType="Blog Post" title="Blog Post Creator" />;

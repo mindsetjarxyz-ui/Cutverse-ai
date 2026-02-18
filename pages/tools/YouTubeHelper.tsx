@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { generateText } from '../../services/geminiService';
 import { Youtube, Tag, AlignLeft, RefreshCw, Copy, Check, PlusCircle, Trash2, FileText } from 'lucide-react';
+import RichTextRenderer from '../../components/RichTextRenderer';
 
 type Tab = 'titles' | 'description' | 'script' | 'tags';
 
@@ -59,7 +60,7 @@ const YouTubeHelper: React.FC = () => {
     setDisplayedResult('');
 
     typeIntervalRef.current = window.setInterval(() => {
-      const chunkSize = 8; 
+      const chunkSize = 15; // Faster typing for better UX with RichText
       const nextIndex = Math.min(currentIndex + chunkSize, fullResult.length);
       
       setDisplayedResult(fullResult.substring(0, nextIndex));
@@ -87,6 +88,7 @@ const YouTubeHelper: React.FC = () => {
 
   const handleGenerate = async () => {
     const currentInput = tabData[activeTab].input;
+    if (!currentInput) return;
 
     setLoading(true);
     updateCurrentTab({ result: '' });
@@ -96,20 +98,20 @@ const YouTubeHelper: React.FC = () => {
       let systemInstruction = "You are a YouTube growth and SEO expert.";
       
       if (activeTab === 'titles') {
-        prompt = `Generate exactly 5 clickbait-style, highly engaging, and viral YouTube titles for a video about: "${currentInput}". Make them catchy but relevant.`;
+        prompt = `Generate exactly 5 clickbait-style, highly engaging, and viral YouTube titles for a video about: "${currentInput}". Make them catchy but relevant. Use **bold** for key keywords.`;
       } else if (activeTab === 'script') {
         prompt = `Write a complete, engaging YouTube video script for a video about: "${currentInput}". 
         Structure:
-        1. Hook (0-30s): Grab attention immediately.
-        2. Intro: Briefly state what the video is about.
-        3. Content Body: Break down into 3-5 key sections/steps.
-        4. Engagement: Remind to like/subscribe in a natural way.
-        5. Conclusion & CTA: Summary and what to watch next.
+        1. **Hook (0-30s)**: Grab attention immediately.
+        2. **Intro**: Briefly state what the video is about.
+        3. **Content Body**: Break down into 3-5 key sections/steps. Use ### for section headers.
+        4. **Engagement**: Remind to like/subscribe in a natural way.
+        5. **Conclusion & CTA**: Summary and what to watch next.
         Tone: Energetic, conversational, and audience-focused.`;
       } else if (activeTab === 'description') {
-        prompt = `Write a full, SEO-optimized YouTube video description for a video titled: "${currentInput}". Include an engaging introduction, bullet points for what is covered, and placeholders for timestamps and social links.`;
+        prompt = `Write a full, SEO-optimized YouTube video description for a video titled: "${currentInput}". Include an engaging introduction, bullet points (using - ) for what is covered, and placeholders for timestamps and social links. Use **bold** for keywords.`;
       } else if (activeTab === 'tags') {
-        prompt = `Generate a comma-separated list of 30 high-volume, low-competition SEO tags/keywords for a YouTube video titled: "${currentInput}".`;
+        prompt = `Generate a list of 30 high-volume, low-competition SEO tags/keywords for a YouTube video titled: "${currentInput}". Return them as a comma-separated list.`;
       }
 
       const text = await generateText(prompt, systemInstruction);
@@ -212,12 +214,7 @@ const YouTubeHelper: React.FC = () => {
             </div>
             <div className="p-6 flex-grow overflow-y-auto">
               {displayedResult ? (
-                <div className="prose prose-invert prose-sm max-w-none text-gray-300 whitespace-pre-line">
-                  {displayedResult}
-                  {displayedResult.length < currentData.result.length && (
-                     <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse"/>
-                  )}
-                </div>
+                <RichTextRenderer content={displayedResult} />
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-gray-500">
                   <Youtube size={32} className="opacity-20 mb-4" />

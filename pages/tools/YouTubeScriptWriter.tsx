@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { generateText } from '../../services/geminiService';
 import { FileText, RefreshCw, Copy, Check, Download } from 'lucide-react';
+import RichTextRenderer from '../../components/RichTextRenderer';
 
 const YouTubeScriptWriter: React.FC = () => {
   const [topic, setTopic] = useState('');
@@ -20,7 +21,7 @@ const YouTubeScriptWriter: React.FC = () => {
     let currentIndex = 0;
     setDisplayedResult('');
     typeIntervalRef.current = window.setInterval(() => {
-      const chunkSize = 5; 
+      const chunkSize = 15; 
       const nextIndex = Math.min(currentIndex + chunkSize, result.length);
       setDisplayedResult(result.substring(0, nextIndex));
       currentIndex = nextIndex;
@@ -38,12 +39,12 @@ const YouTubeScriptWriter: React.FC = () => {
     try {
       const prompt = `Write a complete, engaging YouTube video script for a video about: "${topic}". 
       Structure:
-      1. Hook (0-30s): Grab attention immediately.
-      2. Intro: Briefly state what the video is about.
-      3. Content Body: Break down into 3-5 key sections/steps.
-      4. Engagement: Remind to like/subscribe in a natural way.
-      5. Conclusion & CTA: Summary and what to watch next.
-      Tone: Energetic, conversational, and audience-focused.`;
+      1. **Hook (0-30s)**: Grab attention immediately.
+      2. **Intro**: Briefly state what the video is about.
+      3. **Content Body**: Break down into 3-5 key sections/steps. Use ## for main section titles.
+      4. **Engagement**: Remind to like/subscribe in a natural way.
+      5. **Conclusion & CTA**: Summary and what to watch next.
+      Tone: Energetic, conversational, and audience-focused. Use **bold** for emphasis.`;
       
       const text = await generateText(prompt, "You are a professional YouTube script writer.");
       setResult(text);
@@ -118,9 +119,7 @@ const YouTubeScriptWriter: React.FC = () => {
             </div>
             <div className="p-6 flex-grow overflow-y-auto">
               {displayedResult ? (
-                <div className="prose prose-invert prose-sm max-w-none text-gray-300 whitespace-pre-line">
-                  {displayedResult}
-                </div>
+                <RichTextRenderer content={displayedResult} />
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-gray-500">
                   <FileText size={32} className="opacity-20 mb-4" />

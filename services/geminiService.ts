@@ -38,6 +38,8 @@ export const generateText = async (
         systemInstruction: systemInstruction,
       }
     });
+    
+    // Return raw text to allow markdown rendering
     return response.text || "No response generated.";
   } catch (error) {
     console.error("Text Generation Error:", error);
@@ -143,7 +145,7 @@ export const generateSegmentationMask = async (
           data: imageBase64
         }
       },
-      { text: "Generate a pure black and white binary mask of the main subject in this image. The subject should be white (#FFFFFF) and the background should be black (#000000). The mask must perfectly match the subject's outline and composition." }
+      { text: "Create a pure black and white silhouette mask of the main subject in this image. The subject must be SOLID WHITE (#FFFFFF). The background must be SOLID BLACK (#000000). Ensure clean, sharp edges. No gray areas, no noise. Just the silhouette." }
     ];
 
     const response = await ai.models.generateContent({

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { generateText } from '../../services/geminiService';
 import { AlignLeft, RefreshCw, Copy, Check } from 'lucide-react';
+import RichTextRenderer from '../../components/RichTextRenderer';
 
 const YouTubeDescriptionGenerator: React.FC = () => {
   const [topic, setTopic] = useState('');
@@ -19,7 +20,7 @@ const YouTubeDescriptionGenerator: React.FC = () => {
     let currentIndex = 0;
     setDisplayedResult('');
     typeIntervalRef.current = window.setInterval(() => {
-      const chunkSize = 5; 
+      const chunkSize = 15; 
       const nextIndex = Math.min(currentIndex + chunkSize, result.length);
       setDisplayedResult(result.substring(0, nextIndex));
       currentIndex = nextIndex;
@@ -35,7 +36,7 @@ const YouTubeDescriptionGenerator: React.FC = () => {
     setLoading(true);
     setResult('');
     try {
-      const prompt = `Write a full, SEO-optimized YouTube video description for a video titled: "${topic}". Include an engaging introduction, bullet points for what is covered, and placeholders for timestamps and social links.`;
+      const prompt = `Write a full, SEO-optimized YouTube video description for a video titled: "${topic}". Include an engaging **Introduction**, **Key Points** (use bullet points), and **Timestamps** placeholder. Use **bold** for important terms.`;
       const text = await generateText(prompt, "You are a YouTube SEO expert.");
       setResult(text);
     } catch (e) {
@@ -87,9 +88,7 @@ const YouTubeDescriptionGenerator: React.FC = () => {
             </div>
             <div className="p-6 flex-grow overflow-y-auto">
               {displayedResult ? (
-                <div className="prose prose-invert prose-sm max-w-none text-gray-300 whitespace-pre-line">
-                  {displayedResult}
-                </div>
+                <RichTextRenderer content={displayedResult} />
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-gray-500">
                   <AlignLeft size={32} className="opacity-20 mb-4" />

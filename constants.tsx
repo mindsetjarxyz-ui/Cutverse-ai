@@ -14,7 +14,14 @@ import {
   Eye,
   Hash,
   AlignLeft,
-  FileType
+  FileType,
+  GraduationCap,
+  BookOpen,
+  ScrollText,
+  MessageCircle,
+  Mic2,
+  Languages,
+  Feather
 } from 'lucide-react';
 import { Tool, ToolCategory } from './types';
 
@@ -22,6 +29,7 @@ import { Tool, ToolCategory } from './types';
 const ScanIcon = Eye;
 
 export const TOOLS: Tool[] = [
+  // --- VIRAL / POPULAR TOOLS (Top Priority) ---
   {
     id: 'image-gen',
     name: 'AI Image Generator',
@@ -59,6 +67,84 @@ export const TOOLS: Tool[] = [
     path: '/tools/social/youtube-script',
     isNew: true
   },
+
+  // --- STUDENT AI TOOLS ---
+  {
+    id: 'student-essay',
+    name: 'Essay Writer',
+    description: 'Generate academic essays with proper introduction and conclusion.',
+    category: ToolCategory.STUDENT,
+    icon: BookOpen,
+    path: '/tools/student/essay',
+    popular: true
+  },
+  {
+    id: 'student-paragraph',
+    name: 'Paragraph Writer',
+    description: 'Write perfectly structured paragraphs for any grade level.',
+    category: ToolCategory.STUDENT,
+    icon: AlignLeft,
+    path: '/tools/student/paragraph',
+    isNew: true
+  },
+  {
+    id: 'student-summary',
+    name: 'Summary Generator',
+    description: 'Summarize text or topics into concise notes.',
+    category: ToolCategory.STUDENT,
+    icon: FileText,
+    path: '/tools/student/summary'
+  },
+  {
+    id: 'student-grammar',
+    name: 'Grammar Improver',
+    description: 'Fix grammar and improve sentence structure.',
+    category: ToolCategory.STUDENT,
+    icon: Languages,
+    path: '/tools/student/grammar'
+  },
+  {
+    id: 'student-composition',
+    name: 'Composition Writer',
+    description: 'Creative compositions tailored to specific word counts.',
+    category: ToolCategory.STUDENT,
+    icon: Feather,
+    path: '/tools/student/composition'
+  },
+  {
+    id: 'student-letter',
+    name: 'Letter Writer',
+    description: 'Formal and informal letters (applications, complaints, friendly).',
+    category: ToolCategory.STUDENT,
+    icon: ScrollText,
+    path: '/tools/student/letter'
+  },
+  {
+    id: 'student-story',
+    name: 'Story Writer',
+    description: 'Create engaging stories based on prompts or morals.',
+    category: ToolCategory.STUDENT,
+    icon: Sparkles,
+    path: '/tools/student/story'
+  },
+  {
+    id: 'student-speech',
+    name: 'Speech Writer',
+    description: 'Write persuasive speeches for assembly or debate.',
+    category: ToolCategory.STUDENT,
+    icon: Mic2,
+    path: '/tools/student/speech'
+  },
+  {
+    id: 'student-debate',
+    name: 'Debate Writer',
+    description: 'Generate arguments for or against a motion.',
+    category: ToolCategory.STUDENT,
+    icon: MessageCircle,
+    path: '/tools/student/debate'
+  },
+
+  // --- SOCIAL MEDIA TOOLS ---
   {
     id: 'youtube-titles',
     name: 'YouTube Title Generator',
@@ -83,6 +169,16 @@ export const TOOLS: Tool[] = [
     icon: Hash,
     path: '/tools/social/youtube-tags'
   },
+  {
+    id: 'social-caption',
+    name: 'Social Captions',
+    description: 'Engaging captions for Instagram, Twitter, and LinkedIn.',
+    category: ToolCategory.SOCIAL,
+    icon: Sparkles,
+    path: '/tools/social/captions'
+  },
+
+  // --- IMAGE & UTILITY TOOLS ---
   {
     id: 'photo-enhancer',
     name: 'AI Photo Upscaler',
@@ -115,20 +211,13 @@ export const TOOLS: Tool[] = [
     category: ToolCategory.WRITING,
     icon: FileType,
     path: '/tools/writing/blog'
-  },
-  {
-    id: 'social-caption',
-    name: 'Social Captions',
-    description: 'Engaging captions for Instagram, Twitter, and LinkedIn.',
-    category: ToolCategory.SOCIAL,
-    icon: Sparkles,
-    path: '/tools/social/captions'
   }
 ];
 
 export const CATEGORIES = [
   { id: ToolCategory.ALL, icon: Layout },
-  { id: ToolCategory.IMAGE, icon: Image },
+  { id: ToolCategory.STUDENT, icon: GraduationCap },
   { id: ToolCategory.WRITING, icon: PenTool },
+  { id: ToolCategory.IMAGE, icon: Image },
   { id: ToolCategory.SOCIAL, icon: Youtube },
 ];

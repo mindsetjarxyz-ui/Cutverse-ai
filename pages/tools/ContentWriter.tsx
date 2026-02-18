@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { generateText } from '../../services/geminiService';
 import { Copy, Download, RefreshCw, PenTool, Check } from 'lucide-react';
+import RichTextRenderer from '../../components/RichTextRenderer';
 
 interface ContentWriterProps {
   initialType?: string;
@@ -48,7 +49,7 @@ const ContentWriter: React.FC<ContentWriterProps> = ({
     setDisplayedResult('');
 
     typeIntervalRef.current = window.setInterval(() => {
-      const chunkSize = 5; 
+      const chunkSize = 8; 
       const nextIndex = Math.min(currentIndex + chunkSize, fullResult.length);
       
       setDisplayedResult(fullResult.substring(0, nextIndex));
@@ -57,7 +58,7 @@ const ContentWriter: React.FC<ContentWriterProps> = ({
       if (currentIndex >= fullResult.length) {
         if (typeIntervalRef.current) window.clearInterval(typeIntervalRef.current);
       }
-    }, 10);
+    }, 5);
 
     return () => {
       if (typeIntervalRef.current) window.clearInterval(typeIntervalRef.current);
@@ -71,7 +72,7 @@ const ContentWriter: React.FC<ContentWriterProps> = ({
     setDisplayedResult('');
     
     try {
-      const prompt = `Write a ${type} about "${topic}". The tone should be ${tone}. Use markdown formatting.`;
+      const prompt = `Write a ${type} about "${topic}". The tone should be ${tone}. Use standard Markdown formatting: Use ## for main headings, ### for subheadings, **bold** for emphasis, and bullet points where appropriate. Keep it professional and well-structured.`;
       const text = await generateText(prompt, "You are an expert content writer.");
       setFullResult(text);
     } catch (e) {
@@ -198,12 +199,7 @@ const ContentWriter: React.FC<ContentWriterProps> = ({
             
             <div className="p-6 flex-grow overflow-y-auto">
               {displayedResult ? (
-                <div className="prose prose-invert max-w-none text-gray-300 whitespace-pre-line">
-                  {displayedResult}
-                  {displayedResult.length < fullResult.length && (
-                    <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse"/>
-                  )}
-                </div>
+                <RichTextRenderer content={displayedResult} />
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-gray-500">
                   <div className="p-4 bg-navy-700/50 rounded-full mb-4">
