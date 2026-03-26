@@ -1,0 +1,56 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores user credits, plan, and last renewal date.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "credits": { "type": "number" },
+        "plan": { "type": "string" },
+        "lastRenewalDate": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "credits", "plan"]
+    },
+    "QuizScore": {
+      "title": "Quiz Score",
+      "description": "Stores user scores for completed quizzes.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "topic": { "type": "string" },
+        "score": { "type": "number" },
+        "total": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "topic", "score", "total", "timestamp"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "Stores individual chat messages for StudyBuddy history.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "role", "content", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile document."
+    },
+    "/quiz_scores/{scoreId}": {
+      "schema": "QuizScore",
+      "description": "Collection of quiz scores."
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Subcollection of chat messages for a specific chat session."
+    }
+  }
+}

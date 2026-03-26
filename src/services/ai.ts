@@ -1,170 +1,129 @@
-// AI Service for Cutverse AI using Bytez SDK
-// Direct integration with bytez.js SDK
+import { GoogleGenAI, Type } from '@google/genai';
 
-import Bytez from "bytez.js";
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-const API_KEY = "cd8fe321d2c8864355dcc151f435f41f";
-
-// Initialize Bytez SDK
-const sdk = new Bytez(API_KEY);
-
-// Clean text by removing restricted characters
-export function cleanText(text: string): string {
-  return text
-    .replace(/#/g, '')
-    .replace(/\*/g, '')
-    .replace(/'/g, '')
-    .replace(/`/g, '')
-    .replace(/—/g, ' - ')
-    .trim();
-}
-
-// Format text - simple clean output without styling
-export function formatOutputText(text: string): string {
-  if (!text) return '';
-  
-  const cleaned = cleanText(text);
-  
-  // Just return clean text with basic formatting
-  // Convert paragraph breaks to proper spacing
-  let result = cleaned.replace(/\n\n+/g, '\n\n');
-  
-  return result;
-}
-
-// Text Generation using Bytez SDK with gpt-4o
-export async function generateText(prompt: string, systemPrompt?: string): Promise<{ error: string | null; output: string }> {
+export const generateCompletion = async (prompt: string, language = 'English', model = 'gemini-3.1-flash-lite-preview') => {
   try {
-    // Choose gpt-4o model
-    const model = sdk.model("openai/gpt-4o");
-    
-    // Build messages array
-    const messages: Array<{ role: string; content: string }> = [];
-    
-    const defaultSystem = `You are a professional AI writing assistant. Follow these rules strictly:
-- NEVER use hash/pound symbols (#) in your output
-- NEVER use asterisks (*) in your output  
-- NEVER use single quotes or backticks in your output
-- NEVER use markdown formatting
-- Write clean plain text only
-- Use proper paragraph breaks with blank lines between sections
-- Write section headings on their own line followed by a colon if needed
-- Keep text natural, well-structured, and easy to read
-- If the user requests a specific language, write entirely in that language`;
-
-    messages.push({ 
-      role: "system", 
-      content: systemPrompt ? `${defaultSystem}\n\n${systemPrompt}` : defaultSystem 
+    const response = await ai.models.generateContent({
+      model,
+      contents: `${prompt}\n\nIMPORTANT: Please respond in ${language}.`,
     });
-    
-    messages.push({ role: "user", content: prompt });
-    
-    // Send input to model using the SDK
-    const result = await model.run(messages);
-    
-    // Check for errors
-    if (result.error) {
-      console.error('Bytez API error:', result.error);
-      return { error: String(result.error), output: '' };
+    return response.text;
+  } catch (error) {
+    console.error('AI Generation Error:', error);
+    throw error;
+  }
+};
+
+export const generateCompletionStream = async function* (prompt: string, history: { role: 'user' | 'model'; parts: { text: string }[] }[] = [], language = 'English', model = 'gemini-3.1-flash-lite-preview') {
+  try {
+    const responseStream = await ai.models.generateContentStream({
+      model,
+      contents: [
+        ...history,
+        { role: 'user', parts: [{ text: `${prompt}\n\nIMPORTANT: Please respond in ${language}.` }] }
+      ]
+    });
+    for await (const chunk of responseStream) {
+      yield chunk.text;
     }
-    
-    // Extract the text from the response
-    let outputText = '';
-    
-    if (typeof result.output === 'string') {
-      outputText = result.output;
-    } else if (result.output?.choices?.[0]?.message?.content) {
-      outputText = result.output.choices[0].message.content;
-    } else if (result.output?.content) {
-      outputText = result.output.content;
-    } else if (result.output?.message?.content) {
-      outputText = result.output.message.content;
-    } else if (Array.isArray(result.output)) {
-      outputText = result.output.map((item: any) => {
-        if (typeof item === 'string') return item;
-        return item.content || item.text || item.message?.content || '';
-      }).join('');
-    } else if (typeof result.output === 'object' && result.output !== null) {
-      const output = result.output as any;
-      if (output.text) {
-        outputText = output.text;
-      } else if (output.response) {
-        outputText = output.response;
-      } else {
-        try {
-          outputText = JSON.stringify(result.output);
-        } catch {
-          outputText = String(result.output);
+  } catch (error) {
+    console.error('AI Stream Error:', error);
+    throw error;
+  }
+};
+
+export const generateQuiz = async (topic: string, count: number, difficulty: string, language: string = 'English') => {
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.1-flash-lite-preview',
+      contents: `Generate a multiple choice quiz about ${topic} with ${count} questions at a ${difficulty} difficulty level. 
+      The output language must be ${language}. 
+      CRITICAL: Ensure that the 'correctAnswerIndex' is randomized across all questions (do not always pick the same index like 1 or 2).`,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              question: { type: Type.STRING },
+              options: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+                description: "Exactly 4 options"
+              },
+              correctAnswerIndex: { type: Type.INTEGER, description: "0-based index of the correct option (0-3)" },
+              explanation: { type: Type.STRING }
+            },
+            required: ["question", "options", "correctAnswerIndex", "explanation"]
+          }
         }
       }
-    }
-    
-    if (!outputText) {
-      return { error: 'No output received from API', output: '' };
-    }
-    
-    return { error: null, output: cleanText(outputText) };
-  } catch (err: any) {
-    console.error('Text generation error:', err);
-    return { error: err.message || 'Failed to generate text. Please try again.', output: '' };
+    });
+    return JSON.parse(response.text || '[]');
+  } catch (error) {
+    console.error('Quiz Generation Error:', error);
+    throw error;
   }
-}
+};
 
-// Image Generation using Bytez SDK with stable-diffusion-xl-base-1.0
-export async function generateImage(prompt: string): Promise<{ error: string | null; output: string }> {
+export const analyzeDocument = async (fileData: string, mimeType: string, prompt: string, language = 'English') => {
   try {
-    // Choose stable-diffusion-xl-base-1.0 model
-    const model = sdk.model("stabilityai/stable-diffusion-xl-base-1.0");
-    
-    // Send input to model using the SDK
-    const result = await model.run(prompt);
-    
-    // Check for errors
-    if (result.error) {
-      console.error('Bytez API error:', result.error);
-      return { error: String(result.error), output: '' };
-    }
-    
-    // Handle different response formats
-    let imageData = '';
-    
-    if (result.output instanceof Blob) {
-      imageData = URL.createObjectURL(result.output);
-    } else if (typeof result.output === 'string') {
-      imageData = result.output;
-    } else if (result.output?.image) {
-      imageData = result.output.image;
-    } else if (result.output?.url) {
-      imageData = result.output.url;
-    } else if (result.output?.images?.[0]) {
-      imageData = result.output.images[0];
-    } else if (result.output?.base64) {
-      imageData = `data:image/png;base64,${result.output.base64}`;
-    } else if (Array.isArray(result.output) && result.output.length > 0) {
-      const firstItem = result.output[0];
-      if (firstItem instanceof Blob) {
-        imageData = URL.createObjectURL(firstItem);
-      } else if (typeof firstItem === 'string') {
-        imageData = firstItem;
-      } else if (firstItem?.url) {
-        imageData = firstItem.url;
-      } else if (firstItem?.image) {
-        imageData = firstItem.image;
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.1-flash-lite-preview',
+      contents: {
+        parts: [
+          { inlineData: { data: fileData, mimeType } },
+          { text: `${prompt}\n\nIMPORTANT: Please respond in ${language}.` }
+        ]
       }
-    }
-    
-    // Ensure proper data URI format for base64
-    if (imageData && !imageData.startsWith('http') && !imageData.startsWith('data:') && !imageData.startsWith('blob:')) {
-      imageData = `data:image/png;base64,${imageData}`;
-    }
-    
-    if (!imageData) {
-      return { error: 'No image received from API', output: '' };
-    }
-    
-    return { error: null, output: imageData };
-  } catch (err: any) {
-    console.error('Image generation error:', err);
-    return { error: err.message || 'Failed to generate image', output: '' };
+    });
+    return response.text;
+  } catch (error) {
+    console.error('Document Analysis Error:', error);
+    throw error;
   }
-}
+};
+
+export const analyzeDocumentStream = async function* (fileData: string, mimeType: string, prompt: string, history: { role: 'user' | 'model'; parts: { text: string }[] }[] = [], language = 'English') {
+  try {
+    const responseStream = await ai.models.generateContentStream({
+      model: 'gemini-3.1-flash-lite-preview',
+      contents: [
+        ...history,
+        {
+          role: 'user',
+          parts: [
+            { inlineData: { data: fileData, mimeType } },
+            { text: `${prompt}\n\nIMPORTANT: Please respond in ${language}.` }
+          ]
+        }
+      ]
+    });
+    for await (const chunk of responseStream) {
+      yield chunk.text;
+    }
+  } catch (error) {
+    console.error('Document Analysis Stream Error:', error);
+    throw error;
+  }
+};
+
+export const transcribeAudio = async (audioData: string, mimeType: string, language = 'English') => {
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.1-flash-lite-preview',
+      contents: {
+        parts: [
+          { inlineData: { data: audioData, mimeType } },
+          { text: `Please transcribe this lecture audio and then provide a well-structured, bullet-point summary of the key notes. Use Markdown for formatting. Include a 'Summary' section and a 'Key Takeaways' section. IMPORTANT: Please respond in ${language}.` }
+        ]
+      }
+    });
+    return response.text;
+  } catch (error) {
+    console.error('Audio Transcription Error:', error);
+    throw error;
+  }
+};

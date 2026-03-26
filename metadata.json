@@ -1,7 +1,5 @@
 {
-  "name": "Cutverse Ai",
-  "description": "A minimalist, modern AI tools hub featuring functional text and image tools without login requirements.",
-  "requestFramePermissions": [
-    "camera"
-  ]
+  "name": "Studygen AI",
+  "description": "A digital intelligent environment where students can ask doubts, generate notes, create quizzes, plan studies, and track learning.",
+  "requestFramePermissions": ["microphone"]
 }
